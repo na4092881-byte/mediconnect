@@ -558,6 +558,10 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
 function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [users, setUsers] = useState<any[]>([])
   const [cases, setCases] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'cases'>('overview')
+  const [searchUser, setSearchUser] = useState('')
+  const [filterRole, setFilterRole] = useState('all')
+  const [selectedCase, setSelectedCase] = useState<any | null>(null)
 
   useEffect(() => { fetchUsers(); fetchCases() }, [])
 
@@ -567,7 +571,7 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
   }
 
   const fetchCases = async () => {
-    const { data } = await supabase.from('cases').select('*')
+    const { data } = await supabase.from('cases').select('*, profiles!cases_patient_id_fkey(name, email), feedback(*)').order('created_at', { ascending: false })
     setCases(data || [])
   }
 
@@ -576,66 +580,233 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
     fetchUsers()
   }
 
+  const filteredUsers = users.filter(u => {
+    const matchSearch = u.name?.toLowerCase().includes(searchUser.toLowerCase()) || u.email?.toLowerCase().includes(searchUser.toLowerCase())
+    const matchRole = filterRole === 'all' || u.role === filterRole
+    return matchSearch && matchRole
+  })
+
+  // Daily cases for last 7 days
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    return d.toLocaleDateString('en', { weekday: 'short' })
+  })
+  const casesPerDay = last7Days.map((day, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    return cases.filter(c => new Date(c.created_at).toDateString() === d.toDateString()).length
+  })
+  const maxCases = Math.max(...casesPerDay, 1)
+
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
       <nav style={{ background: '#7c3aed', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ color: 'white', margin: 0 }}>🏥 MediConnect Admin</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ color: 'white' }}>👨‍💼 {user.name}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Tab Buttons */}
+          {[
+            { key: 'overview', label: '📊 Overview' },
+            { key: 'users', label: '👥 Users' },
+            { key: 'cases', label: '📋 Cases' },
+          ].map(t => (
+            <button key={t.key} onClick={() => setActiveTab(t.key as any)} style={{
+              padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px',
+              background: activeTab === t.key ? 'white' : 'rgba(255,255,255,0.2)',
+              color: activeTab === t.key ? '#7c3aed' : 'white'
+            }}>{t.label}</button>
+          ))}
+          <span style={{ color: 'white', marginLeft: '8px' }}>👨‍💼 {user.name}</span>
           <button onClick={onLogout} style={{ background: 'white', color: '#7c3aed', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>Logout</button>
         </div>
       </nav>
-      <div style={{ maxWidth: '1000px', margin: '24px auto', padding: '0 16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-          {[
-            { label: 'Total Users', value: users.length, color: '#1a73e8' },
-            { label: 'Doctors', value: users.filter(u => u.role === 'doctor').length, color: '#0d9488' },
-            { label: 'Patients', value: users.filter(u => u.role === 'patient').length, color: '#8b5cf6' },
-            { label: 'Total Cases', value: cases.length, color: '#f59e0b' },
-          ].map(s => (
-            <div key={s.label} style={{ background: 'white', padding: '20px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: s.color, margin: 0 }}>{s.value}</p>
-              <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>{s.label}</p>
-            </div>
-          ))}
-        </div>
-        <div style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-          <h3 style={{ marginBottom: '16px', color: '#7c3aed' }}>👥 User Management</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f3f4f6' }}>
-                {['Name', 'Role', 'Email', 'Status', 'Action'].map(h => (
-                  <th key={h} style={{ padding: '12px', textAlign: 'left', fontSize: '14px', color: '#666' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u: any) => (
-                <tr key={u.id} style={{ borderBottom: '1px solid #f0f0f0', opacity: u.blocked ? 0.6 : 1 }}>
-                  <td style={{ padding: '12px', fontWeight: 'bold' }}>{u.name}</td>
-                  <td style={{ padding: '12px' }}>
-                    <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px',
-                      background: u.role === 'doctor' ? '#e0f2f1' : u.role === 'admin' ? '#ede9fe' : '#fef3cd',
-                      color: u.role === 'doctor' ? '#0d9488' : u.role === 'admin' ? '#7c3aed' : '#856404' }}>{u.role}</span>
-                  </td>
-                  <td style={{ padding: '12px', color: '#666', fontSize: '14px' }}>{u.email}</td>
-                  <td style={{ padding: '12px' }}>
-                    <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
-                      background: u.blocked ? '#fee2e2' : '#e6f4ea', color: u.blocked ? '#dc2626' : '#137333' }}>
-                      {u.blocked ? '🚫 Blocked' : '✅ Active'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <button onClick={() => toggleBlock(u)} style={{
-                      padding: '6px 14px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-                      background: u.blocked ? '#e6f4ea' : '#fee2e2', color: u.blocked ? '#137333' : '#dc2626'
-                    }}>{u.blocked ? 'Unblock' : 'Block'}</button>
-                  </td>
-                </tr>
+
+      <div style={{ maxWidth: '1100px', margin: '24px auto', padding: '0 16px' }}>
+
+        {/* ── OVERVIEW TAB ── */}
+        {activeTab === 'overview' && (
+          <div>
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '14px', marginBottom: '24px' }}>
+              {[
+                { label: 'Total Users', value: users.length, color: '#1a73e8', icon: '👥' },
+                { label: 'Doctors', value: users.filter(u => u.role === 'doctor').length, color: '#0d9488', icon: '👨‍⚕️' },
+                { label: 'Patients', value: users.filter(u => u.role === 'patient').length, color: '#8b5cf6', icon: '🧑' },
+                { label: 'Total Cases', value: cases.length, color: '#f59e0b', icon: '📋' },
+                { label: 'Reviewed', value: cases.filter(c => c.status === 'reviewed').length, color: '#10b981', icon: '✅' },
+              ].map(s => (
+                <div key={s.label} style={{ background: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                  <p style={{ fontSize: '24px', margin: '0 0 4px' }}>{s.icon}</p>
+                  <p style={{ fontSize: '28px', fontWeight: 'bold', color: s.color, margin: 0 }}>{s.value}</p>
+                  <p style={{ color: '#666', margin: 0, fontSize: '12px' }}>{s.label}</p>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {/* Cases Chart */}
+            <div style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', marginBottom: '24px' }}>
+              <h3 style={{ color: '#7c3aed', marginBottom: '20px' }}>📈 Cases - Last 7 Days</h3>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '150px' }}>
+                {casesPerDay.map((count, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#7c3aed' }}>{count}</span>
+                    <div style={{
+                      width: '100%', borderRadius: '6px 6px 0 0',
+                      background: count > 0 ? '#7c3aed' : '#e9d5ff',
+                      height: `${Math.max((count / maxCases) * 120, count > 0 ? 8 : 4)}px`
+                    }} />
+                    <span style={{ fontSize: '11px', color: '#666' }}>{last7Days[i]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Stats Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+                <h4 style={{ color: '#7c3aed', marginBottom: '12px' }}>🔴 Pending Cases</h4>
+                {cases.filter(c => c.status === 'pending').slice(0, 4).map((c: any) => (
+                  <div key={c.id} style={{ padding: '8px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold' }}>#{c.case_number}</span>
+                    <span style={{ fontSize: '12px', color: '#666' }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+                {cases.filter(c => c.status === 'pending').length === 0 && <p style={{ color: '#888', fontSize: '13px' }}>No pending cases! 🎉</p>}
+              </div>
+              <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+                <h4 style={{ color: '#0d9488', marginBottom: '12px' }}>👨‍⚕️ Active Doctors</h4>
+                {users.filter(u => u.role === 'doctor' && !u.blocked).map((u: any) => (
+                  <div key={u.id} style={{ padding: '8px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{u.name}</span>
+                    <span style={{ fontSize: '12px', color: '#0d9488' }}>{u.specialization || 'General'}</span>
+                  </div>
+                ))}
+                {users.filter(u => u.role === 'doctor').length === 0 && <p style={{ color: '#888', fontSize: '13px' }}>No doctors yet!</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── USERS TAB ── */}
+        {activeTab === 'users' && (
+          <div>
+            {/* Search & Filter */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              <input
+                placeholder="🔍 Search by name or email..."
+                value={searchUser}
+                onChange={e => setSearchUser(e.target.value)}
+                style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+              />
+              {['all', 'doctor', 'patient', 'admin'].map(r => (
+                <button key={r} onClick={() => setFilterRole(r)} style={{
+                  padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px',
+                  background: filterRole === r ? '#7c3aed' : '#e9d5ff', color: filterRole === r ? 'white' : '#7c3aed'
+                }}>{r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}</button>
+              ))}
+            </div>
+
+            <div style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+              <h3 style={{ marginBottom: '16px', color: '#7c3aed' }}>👥 User Management ({filteredUsers.length})</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f3f4f6' }}>
+                    {['Name', 'Role', 'Email', 'Joined', 'Status', 'Action'].map(h => (
+                      <th key={h} style={{ padding: '12px', textAlign: 'left', fontSize: '14px', color: '#666' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((u: any) => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid #f0f0f0', opacity: u.blocked ? 0.6 : 1 }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{u.name}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px',
+                          background: u.role === 'doctor' ? '#e0f2f1' : u.role === 'admin' ? '#ede9fe' : '#fef3cd',
+                          color: u.role === 'doctor' ? '#0d9488' : u.role === 'admin' ? '#7c3aed' : '#856404' }}>{u.role}</span>
+                      </td>
+                      <td style={{ padding: '12px', color: '#666', fontSize: '14px' }}>{u.email}</td>
+                      <td style={{ padding: '12px', color: '#888', fontSize: '13px' }}>{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
+                          background: u.blocked ? '#fee2e2' : '#e6f4ea', color: u.blocked ? '#dc2626' : '#137333' }}>
+                          {u.blocked ? '🚫 Blocked' : '✅ Active'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <button onClick={() => toggleBlock(u)} style={{
+                          padding: '6px 14px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+                          background: u.blocked ? '#e6f4ea' : '#fee2e2', color: u.blocked ? '#137333' : '#dc2626'
+                        }}>{u.blocked ? 'Unblock' : 'Block'}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredUsers.length === 0 && <p style={{ textAlign: 'center', color: '#888', padding: '20px' }}>No users found!</p>}
+            </div>
+          </div>
+        )}
+
+        {/* ── CASES TAB ── */}
+        {activeTab === 'cases' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0 }}>📋 All Cases ({cases.length})</h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ padding: '6px 14px', borderRadius: '20px', background: '#fef3cd', color: '#856404', fontSize: '13px', fontWeight: 'bold' }}>
+                  ⏳ Pending: {cases.filter(c => c.status === 'pending').length}
+                </span>
+                <span style={{ padding: '6px 14px', borderRadius: '20px', background: '#e6f4ea', color: '#137333', fontSize: '13px', fontWeight: 'bold' }}>
+                  ✅ Reviewed: {cases.filter(c => c.status === 'reviewed').length}
+                </span>
+              </div>
+            </div>
+
+            {cases.map((c: any) => (
+              <div key={c.id} style={{ background: 'white', padding: '16px', borderRadius: '12px', marginBottom: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontWeight: 'bold', color: '#7c3aed' }}>#{c.case_number}</span>
+                    <span style={{ margin: '0 8px', color: '#ddd' }}>|</span>
+                    <span style={{ fontWeight: 'bold' }}>{c.profiles?.name}</span>
+                    <span style={{ color: '#666', fontSize: '13px', marginLeft: '8px' }}>{c.profiles?.email}</span>
+                    <span style={{ color: '#888', fontSize: '12px', marginLeft: '8px' }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
+                      background: c.status === 'reviewed' ? '#e6f4ea' : '#fef3cd',
+                      color: c.status === 'reviewed' ? '#137333' : '#856404' }}>
+                      {c.status === 'reviewed' ? '✅ Reviewed' : '⏳ Pending'}
+                    </span>
+                    <button onClick={() => setSelectedCase(selectedCase?.id === c.id ? null : c)} style={{
+                      padding: '6px 14px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px'
+                    }}>👁️ View</button>
+                  </div>
+                </div>
+
+                {selectedCase?.id === c.id && (
+                  <div style={{ marginTop: '12px', padding: '12px', background: '#faf5ff', borderRadius: '8px' }}>
+                    <h4 style={{ color: '#7c3aed', marginBottom: '10px' }}>Patient's Answers:</h4>
+                    {c.answers?.map((a: any, i: number) => (
+                      <div key={i} style={{ marginBottom: '6px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                        <p style={{ fontWeight: 'bold', margin: '0 0 2px', fontSize: '12px', color: '#555' }}>{a.question}</p>
+                        <p style={{ margin: 0, color: '#333', fontSize: '13px' }}>{a.answer || 'Not answered'}</p>
+                      </div>
+                    ))}
+                    {c.feedback && c.feedback.length > 0 && (
+                      <div style={{ marginTop: '10px', padding: '10px', background: '#e0f2f1', borderRadius: '8px' }}>
+                        <p style={{ fontWeight: 'bold', color: '#0d9488', marginBottom: '4px', fontSize: '13px' }}>👨‍⚕️ Doctor's Reply:</p>
+                        <p style={{ margin: 0, fontSize: '13px' }}>{c.feedback[0].message}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {cases.length === 0 && <p style={{ textAlign: 'center', color: '#888' }}>No cases yet!</p>}
+          </div>
+        )}
       </div>
     </div>
   )
