@@ -592,7 +592,7 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
     d.setDate(d.getDate() - (6 - i))
     return d.toLocaleDateString('en', { weekday: 'short' })
   })
-  const casesPerDay = last7Days.map((day, i) => {
+  const casesPerDay = last7Days.map((_day, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
     return cases.filter(c => new Date(c.created_at).toDateString() === d.toDateString()).length
