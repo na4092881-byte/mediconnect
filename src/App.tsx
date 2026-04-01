@@ -17,6 +17,138 @@ const QUESTIONS = [
 
 type Lang = 'en' | 'hi' | 'hinglish'
 
+// =================== CHAT COMPONENT ===================
+function ChatBox({ caseId, caseNumber, user, onClose }: {
+  caseId: number, caseNumber: string, user: User, onClose: () => void
+}) {
+  const [messages, setMessages] = useState<any[]>([])
+  const [newMsg, setNewMsg] = useState('')
+  const [sending, setSending] = useState(false)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetchMessages()
+    const channel = supabase
+      .channel(`chat-${caseId}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'messages',
+        filter: `case_id=eq.${caseId}`
+      }, (payload) => {
+        setMessages(prev => [...prev, payload.new])
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [caseId])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const fetchMessages = async () => {
+    const { data } = await supabase
+      .from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true })
+    setMessages(data || [])
+  }
+
+  const sendMessage = async () => {
+    if (!newMsg.trim()) return
+    setSending(true)
+    await supabase.from('messages').insert({
+      case_id: caseId, sender_id: user.id, sender_role: user.role, message: newMsg.trim()
+    })
+    setNewMsg('')
+    setSending(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 0, right: 0, width: '360px', height: '500px',
+      background: 'white', borderRadius: '16px 16px 0 0',
+      boxShadow: '0 -4px 24px rgba(0,0,0,0.15)',
+      display: 'flex', flexDirection: 'column', zIndex: 1000
+    }}>
+      <div style={{
+        background: user.role === 'doctor' ? '#0d9488' : '#1a73e8',
+        padding: '14px 16px', borderRadius: '16px 16px 0 0',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+      }}>
+        <div>
+          <p style={{ color: 'white', fontWeight: 'bold', margin: 0, fontSize: '15px' }}>💬 Chat — #{caseNumber}</p>
+          <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: '12px' }}>
+            {user.role === 'doctor' ? 'Chatting with Patient' : 'Chatting with Doctor'}
+          </p>
+        </div>
+        <button onClick={onClose} style={{
+          background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none',
+          borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', fontSize: '16px'
+        }}>✕</button>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#f8fafc' }}>
+        {messages.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '40px' }}>
+            <p style={{ fontSize: '32px' }}>💬</p>
+            <p style={{ fontSize: '14px' }}>No messages yet. Start chatting!</p>
+          </div>
+        )}
+        {messages.map((msg: any) => {
+          const isMe = msg.sender_id === user.id
+          return (
+            <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', marginBottom: '10px' }}>
+              {!isMe && (
+                <div style={{
+                  width: '30px', height: '30px', borderRadius: '50%',
+                  background: msg.sender_role === 'doctor' ? '#0d9488' : '#1a73e8',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '14px', marginRight: '8px', flexShrink: 0
+                }}>
+                  {msg.sender_role === 'doctor' ? '👨‍⚕️' : '🧑'}
+                </div>
+              )}
+              <div style={{
+                maxWidth: '70%', padding: '10px 14px',
+                borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                background: isMe ? (user.role === 'doctor' ? '#0d9488' : '#1a73e8') : 'white',
+                color: isMe ? 'white' : '#1e293b',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.08)', fontSize: '14px', lineHeight: '1.4'
+              }}>
+                {!isMe && (
+                  <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: 'bold',
+                    color: msg.sender_role === 'doctor' ? '#0d9488' : '#1a73e8' }}>
+                    {msg.sender_role === 'doctor' ? '👨‍⚕️ Doctor' : '🧑 Patient'}
+                  </p>
+                )}
+                <p style={{ margin: 0 }}>{msg.message}</p>
+                <p style={{ margin: '4px 0 0', fontSize: '10px', opacity: 0.7, textAlign: 'right' }}>
+                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      <div style={{ padding: '12px', borderTop: '1px solid #e2e8f0', background: 'white', display: 'flex', gap: '8px' }}>
+        <input
+          value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={handleKeyDown}
+          placeholder="Type a message... (Enter to send)"
+          style={{ flex: 1, padding: '10px 14px', borderRadius: '24px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+        />
+        <button onClick={sendMessage} disabled={sending || !newMsg.trim()} style={{
+          padding: '10px 16px', borderRadius: '24px',
+          background: sending || !newMsg.trim() ? '#ccc' : (user.role === 'doctor' ? '#0d9488' : '#1a73e8'),
+          color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px'
+        }}>➤</button>
+      </div>
+    </div>
+  )
+}
+
 // =================== LOGIN ===================
 function Login({ onLogin }: { onLogin: (user: User) => void }) {
   const [isRegister, setIsRegister] = useState(false)
@@ -60,9 +192,7 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
       <div style={{ background: 'white', padding: '40px', borderRadius: '16px', width: '420px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
         <h1 style={{ color: '#1a73e8', textAlign: 'center', marginBottom: '4px', fontSize: '28px' }}>🏥 MediConnect</h1>
         <p style={{ textAlign: 'center', color: '#666', marginBottom: '24px' }}>Bridging doctors and patients</p>
-
         {msg && <p style={{ color: 'green', textAlign: 'center', marginBottom: '12px' }}>{msg}</p>}
-
         <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>I am a:</p>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           {(['patient', 'doctor', 'admin'] as Role[]).map(r => (
@@ -70,14 +200,12 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
               flex: 1, padding: '10px', borderRadius: '8px',
               border: role === r ? '2px solid #1a73e8' : '2px solid #ddd',
               background: role === r ? '#e8f0fe' : 'white',
-              color: role === r ? '#1a73e8' : '#666',
-              cursor: 'pointer', fontWeight: 'bold'
+              color: role === r ? '#1a73e8' : '#666', cursor: 'pointer', fontWeight: 'bold'
             }}>
               {r === 'patient' ? '🧑 Patient' : r === 'doctor' ? '👨‍⚕️ Doctor' : '👨‍💼 Admin'}
             </button>
           ))}
         </div>
-
         {isRegister && (
           <input placeholder="Full Name" value={name} onChange={e => setName(e.target.value)}
             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' as const }} />
@@ -86,19 +214,15 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
           <input placeholder="Specialization (e.g. General Physician)" value={specialization} onChange={e => setSpecialization(e.target.value)}
             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' as const }} />
         )}
-
         <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
           style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' as const }} />
         <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)}
           style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' as const }} />
-
         {error && <p style={{ color: 'red', marginBottom: '12px', fontSize: '14px' }}>{error}</p>}
-
         <button onClick={isRegister ? handleRegister : handleLogin} disabled={loading} style={{
           width: '100%', padding: '14px', background: loading ? '#ccc' : '#1a73e8', color: 'white',
           border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer', fontWeight: 'bold'
         }}>{loading ? 'Please wait...' : isRegister ? 'Create Account' : 'Sign In'}</button>
-
         <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '14px' }}>
           {isRegister ? 'Already have account? ' : "Don't have account? "}
           <span onClick={() => { setIsRegister(!isRegister); setError('') }} style={{ color: '#1a73e8', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -119,8 +243,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
   const [loading, setLoading] = useState(false)
   const [cases, setCases] = useState<any[]>([])
   const [newCaseId, setNewCaseId] = useState('')
-
-  // --- File Upload State ---
+  const [chatCase, setChatCase] = useState<any | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [uploadProgress, setUploadProgress] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -135,20 +258,12 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const selected = Array.from(e.target.files)
-    // Validate: only PDF, JPG, PNG — max 5MB each
-    const valid = selected.filter(f => {
-      const ok = ['application/pdf', 'image/jpeg', 'image/png'].includes(f.type) && f.size <= 5 * 1024 * 1024
-      return ok
-    })
-    if (valid.length !== selected.length) {
-      alert('Only PDF, JPG, PNG files under 5MB allowed!')
-    }
+    const valid = selected.filter(f => ['application/pdf', 'image/jpeg', 'image/png'].includes(f.type) && f.size <= 5 * 1024 * 1024)
+    if (valid.length !== selected.length) alert('Only PDF, JPG, PNG files under 5MB allowed!')
     setFiles(prev => [...prev, ...valid])
   }
 
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index))
-  }
+  const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index))
 
   const uploadFiles = async (caseId: string): Promise<string[]> => {
     const urls: string[] = []
@@ -168,24 +283,16 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
     if (!answers[0].trim()) return
     setLoading(true)
     const caseNumber = 'MC-' + Date.now()
-
     const { data } = await supabase.from('cases').insert({
-      case_number: caseNumber,
-      patient_id: user.id,
+      case_number: caseNumber, patient_id: user.id,
       answers: QUESTIONS.map((q, i) => ({ question: q.en, answer: answers[i] }))
     }).select().single()
-
     if (data) {
-      // Upload files if any
       if (files.length > 0) {
         const filePaths = await uploadFiles(data.id)
-        // Save file paths to case
         await supabase.from('cases').update({ file_paths: filePaths }).eq('id', data.id)
       }
-      setNewCaseId(caseNumber)
-      setSubmitted(true)
-      setFiles([])
-      fetchCases()
+      setNewCaseId(caseNumber); setSubmitted(true); setFiles([]); fetchCases()
     }
     setLoading(false)
   }
@@ -218,9 +325,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                   <button key={l} onClick={() => setLang(l)} style={{
                     padding: '6px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px',
                     background: lang === l ? '#1a73e8' : '#f0f0f0', color: lang === l ? 'white' : '#555'
-                  }}>
-                    {l === 'en' ? '🇬🇧 EN' : l === 'hi' ? '🇮🇳 HI' : '🤝 Hinglish'}
-                  </button>
+                  }}>{l === 'en' ? '🇬🇧 EN' : l === 'hi' ? '🇮🇳 HI' : '🤝 Hinglish'}</button>
                 ))}
               </div>
             </div>
@@ -239,62 +344,35 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
               <>
                 {QUESTIONS.map((q, i) => (
                   <div key={i} style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', color: '#333' }}>
-                      {i + 1}. {q[lang]}
-                    </label>
+                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', color: '#333' }}>{i + 1}. {q[lang]}</label>
                     <input value={answers[i]} onChange={e => { const a = [...answers]; a[i] = e.target.value; setAnswers(a) }}
                       placeholder={lang === 'en' ? 'Your answer...' : lang === 'hi' ? 'आपका जवाब...' : 'Aapka jawab...'}
                       style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' as const }} />
                   </div>
                 ))}
 
-                {/* ===== FILE UPLOAD SECTION ===== */}
                 <div style={{ marginBottom: '20px', padding: '16px', background: '#f8f9ff', borderRadius: '12px', border: '2px dashed #c7d7fc' }}>
                   <p style={{ fontWeight: 'bold', color: '#333', marginBottom: '10px' }}>
                     📎 Attach Medical Files <span style={{ fontWeight: 'normal', color: '#888', fontSize: '13px' }}>(Optional)</span>
                   </p>
-                  <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>
-                    PDF reports, X-rays, prescriptions • JPG/PNG/PDF • Max 5MB each
-                  </p>
-
-                  {/* File List */}
+                  <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>PDF reports, X-rays, prescriptions • JPG/PNG/PDF • Max 5MB each</p>
                   {files.length > 0 && (
                     <div style={{ marginBottom: '12px' }}>
                       {files.map((f, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'white', borderRadius: '8px', marginBottom: '6px', border: '1px solid #e0e0e0' }}>
-                          <span style={{ fontSize: '14px' }}>
-                            {getFileIcon(f.name)} {f.name}
-                            <span style={{ color: '#888', fontSize: '12px', marginLeft: '8px' }}>({(f.size / 1024).toFixed(0)} KB)</span>
-                          </span>
-                          <button onClick={() => removeFile(i)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>
-                            ✕ Remove
-                          </button>
+                          <span style={{ fontSize: '14px' }}>{getFileIcon(f.name)} {f.name}<span style={{ color: '#888', fontSize: '12px', marginLeft: '8px' }}>({(f.size / 1024).toFixed(0)} KB)</span></span>
+                          <button onClick={() => removeFile(i)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>✕ Remove</button>
                         </div>
                       ))}
                     </div>
                   )}
-
-                  {/* Upload Button */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    multiple
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                  />
+                  <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple onChange={handleFileChange} style={{ display: 'none' }} />
                   <button onClick={() => fileInputRef.current?.click()} style={{
                     padding: '10px 20px', background: 'white', color: '#1a73e8',
                     border: '2px solid #1a73e8', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px'
-                  }}>
-                    + Add Files
-                  </button>
-
-                  {uploadProgress && (
-                    <p style={{ color: '#1a73e8', fontSize: '13px', marginTop: '8px' }}>⏳ {uploadProgress}</p>
-                  )}
+                  }}>+ Add Files</button>
+                  {uploadProgress && <p style={{ color: '#1a73e8', fontSize: '13px', marginTop: '8px' }}>⏳ {uploadProgress}</p>}
                 </div>
-                {/* ===== END FILE UPLOAD ===== */}
 
                 <button onClick={handleSubmit} disabled={loading} style={{
                   width: '100%', padding: '14px', background: loading ? '#ccc' : '#1a73e8', color: 'white',
@@ -320,20 +398,26 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                   </span>
                 </div>
                 <p style={{ color: '#555', fontSize: '14px' }}>Submitted: {new Date(c.created_at).toLocaleDateString()}</p>
-                {c.file_paths && c.file_paths.length > 0 && (
-                  <p style={{ color: '#888', fontSize: '13px' }}>📎 {c.file_paths.length} file(s) attached</p>
-                )}
+                {c.file_paths && c.file_paths.length > 0 && <p style={{ color: '#888', fontSize: '13px' }}>📎 {c.file_paths.length} file(s) attached</p>}
                 {c.feedback && c.feedback.length > 0 && (
                   <div style={{ background: '#e8f0fe', padding: '12px', borderRadius: '8px', marginTop: '8px' }}>
                     <p style={{ color: '#1a73e8', fontWeight: 'bold', marginBottom: '4px' }}>👨‍⚕️ Doctor's Reply:</p>
                     <p style={{ color: '#333', margin: 0 }}>{c.feedback[0].message}</p>
                   </div>
                 )}
+                <button onClick={() => setChatCase(chatCase?.id === c.id ? null : c)} style={{
+                  marginTop: '10px', padding: '8px 16px', background: '#1a73e8', color: 'white',
+                  border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold'
+                }}>
+                  💬 {chatCase?.id === c.id ? 'Close Chat' : 'Chat with Doctor'}
+                </button>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {chatCase && <ChatBox caseId={chatCase.id} caseNumber={chatCase.case_number} user={user} onClose={() => setChatCase(null)} />}
     </div>
   )
 }
@@ -346,6 +430,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [fileUrls, setFileUrls] = useState<{ name: string; url: string }[]>([])
+  const [chatCase, setChatCase] = useState<any | null>(null)
 
   useEffect(() => { fetchCases() }, [])
 
@@ -372,9 +457,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
       user_id: selected.patient_id, title: 'Doctor replied to your case',
       message: `Case #${selected.case_number}: ${reply.substring(0, 50)}...`
     })
-    setSent(true)
-    fetchCases()
-    setLoading(false)
+    setSent(true); fetchCases(); setLoading(false)
   }
 
   return (
@@ -412,9 +495,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
                 <span style={{ fontWeight: 'bold' }}>{c.profiles?.name}</span>
                 <span style={{ color: '#666', fontSize: '13px', marginLeft: '8px' }}>{c.profiles?.email}</span>
                 {c.file_paths && c.file_paths.length > 0 && (
-                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#1a73e8', background: '#e8f0fe', padding: '2px 8px', borderRadius: '10px' }}>
-                    📎 {c.file_paths.length} file(s)
-                  </span>
+                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#1a73e8', background: '#e8f0fe', padding: '2px 8px', borderRadius: '10px' }}>📎 {c.file_paths.length} file(s)</span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -425,14 +506,13 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
                 </span>
                 <button onClick={() => {
                   if (selected?.id === c.id) { setSelected(null); setFileUrls([]) }
-                  else {
-                    setSelected(c); setSent(false); setReply('')
-                    if (c.file_paths?.length > 0) loadFileUrls(c.file_paths)
-                    else setFileUrls([])
-                  }
-                }} style={{
-                  padding: '8px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer'
-                }}>View & Reply</button>
+                  else { setSelected(c); setSent(false); setReply(''); if (c.file_paths?.length > 0) loadFileUrls(c.file_paths); else setFileUrls([]) }
+                }} style={{ padding: '8px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                  View & Reply
+                </button>
+                <button onClick={() => setChatCase(chatCase?.id === c.id ? null : c)} style={{
+                  padding: '8px 16px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'
+                }}>💬 Chat</button>
               </div>
             </div>
 
@@ -445,8 +525,6 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
                     <p style={{ margin: 0, color: '#333' }}>{a.answer || 'Not answered'}</p>
                   </div>
                 ))}
-
-                {/* ===== ATTACHED FILES - DOCTOR VIEW ===== */}
                 {fileUrls.length > 0 && (
                   <div style={{ marginTop: '12px', padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #d1fae5' }}>
                     <p style={{ fontWeight: 'bold', color: '#0d9488', marginBottom: '10px' }}>📎 Attached Files:</p>
@@ -455,14 +533,10 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
                         display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '10px', marginBottom: '8px',
                         padding: '8px 14px', background: '#e0f2f1', color: '#0d9488', borderRadius: '8px',
                         textDecoration: 'none', fontSize: '14px', fontWeight: 'bold'
-                      }}>
-                        {f.name.endsWith('.pdf') ? '📄' : '🖼️'} {f.name}
-                      </a>
+                      }}>{f.name.endsWith('.pdf') ? '📄' : '🖼️'} {f.name}</a>
                     ))}
                   </div>
                 )}
-                {/* ===== END ATTACHED FILES ===== */}
-
                 <textarea placeholder="Write prescription or reply..." value={reply} onChange={e => setReply(e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', height: '80px', boxSizing: 'border-box' as const, marginTop: '12px' }} />
                 <button onClick={handleReply} disabled={loading} style={{
@@ -474,6 +548,8 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
           </div>
         ))}
       </div>
+
+      {chatCase && <ChatBox caseId={chatCase.id} caseNumber={chatCase.case_number} user={user} onClose={() => setChatCase(null)} />}
     </div>
   )
 }
@@ -509,7 +585,6 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
           <button onClick={onLogout} style={{ background: 'white', color: '#7c3aed', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>Logout</button>
         </div>
       </nav>
-
       <div style={{ maxWidth: '1000px', margin: '24px auto', padding: '0 16px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
           {[
@@ -524,7 +599,6 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
             </div>
           ))}
         </div>
-
         <div style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
           <h3 style={{ marginBottom: '16px', color: '#7c3aed' }}>👥 User Management</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -542,23 +616,19 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
                   <td style={{ padding: '12px' }}>
                     <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px',
                       background: u.role === 'doctor' ? '#e0f2f1' : u.role === 'admin' ? '#ede9fe' : '#fef3cd',
-                      color: u.role === 'doctor' ? '#0d9488' : u.role === 'admin' ? '#7c3aed' : '#856404' }}>
-                      {u.role}
-                    </span>
+                      color: u.role === 'doctor' ? '#0d9488' : u.role === 'admin' ? '#7c3aed' : '#856404' }}>{u.role}</span>
                   </td>
                   <td style={{ padding: '12px', color: '#666', fontSize: '14px' }}>{u.email}</td>
                   <td style={{ padding: '12px' }}>
                     <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
-                      background: u.blocked ? '#fee2e2' : '#e6f4ea',
-                      color: u.blocked ? '#dc2626' : '#137333' }}>
+                      background: u.blocked ? '#fee2e2' : '#e6f4ea', color: u.blocked ? '#dc2626' : '#137333' }}>
                       {u.blocked ? '🚫 Blocked' : '✅ Active'}
                     </span>
                   </td>
                   <td style={{ padding: '12px' }}>
                     <button onClick={() => toggleBlock(u)} style={{
                       padding: '6px 14px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-                      background: u.blocked ? '#e6f4ea' : '#fee2e2',
-                      color: u.blocked ? '#137333' : '#dc2626'
+                      background: u.blocked ? '#e6f4ea' : '#fee2e2', color: u.blocked ? '#137333' : '#dc2626'
                     }}>{u.blocked ? 'Unblock' : 'Block'}</button>
                   </td>
                 </tr>
