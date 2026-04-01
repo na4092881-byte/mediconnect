@@ -238,21 +238,27 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
 function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [lang, setLang] = useState<Lang>('en')
   const [answers, setAnswers] = useState<string[]>(Array(QUESTIONS.length).fill(''))
-  const [step, setStep] = useState<'questions' | 'cases'>('questions')
+  const [step, setStep] = useState<'questions' | 'cases' | 'records'>('questions')
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [cases, setCases] = useState<any[]>([])
   const [newCaseId, setNewCaseId] = useState('')
   const [chatCase, setChatCase] = useState<any | null>(null)
+  const [records, setRecords] = useState<any[]>([])
   const [files, setFiles] = useState<File[]>([])
   const [uploadProgress, setUploadProgress] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { fetchCases() }, [])
+  useEffect(() => { fetchCases(); fetchRecords() }, [])
 
   const fetchCases = async () => {
     const { data } = await supabase.from('cases').select('*, feedback(*)').eq('patient_id', user.id).order('created_at', { ascending: false })
     setCases(data || [])
+  }
+
+  const fetchRecords = async () => {
+    const { data } = await supabase.from('medical_records').select('*, profiles!medical_records_doctor_id_fkey(name, specialization)').eq('patient_id', user.id).order('created_at', { ascending: false })
+    setRecords(data || [])
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,6 +316,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <button onClick={() => setStep('questions')} style={{ background: step === 'questions' ? 'white' : 'transparent', color: step === 'questions' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>📝 New Case</button>
           <button onClick={() => { setStep('cases'); fetchCases() }} style={{ background: step === 'cases' ? 'white' : 'transparent', color: step === 'cases' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>📋 My Cases</button>
+          <button onClick={() => { setStep('records'); fetchRecords() }} style={{ background: step === 'records' ? 'white' : 'transparent', color: step === 'records' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>🏥 Medical Records</button>
           <span style={{ color: 'white' }}>👋 {user.name}</span>
           <button onClick={onLogout} style={{ background: 'white', color: '#1a73e8', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>Logout</button>
         </div>
@@ -417,6 +424,46 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
         )}
       </div>
 
+        {step === 'records' && (
+          <div>
+            <h3 style={{ marginBottom: '16px' }}>🏥 My Medical Records ({records.length})</h3>
+            {records.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px', background: 'white', borderRadius: '16px' }}>
+                <p style={{ fontSize: '48px' }}>🏥</p>
+                <p style={{ color: '#666' }}>No medical records yet. Submit a case and get doctor's prescription!</p>
+              </div>
+            )}
+            {records.map((r: any) => (
+              <div key={r.id} style={{ background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div>
+                    <span style={{ fontWeight: 'bold', color: '#1a73e8', fontSize: '16px' }}>🏥 Medical Record</span>
+                    <span style={{ marginLeft: '12px', color: '#666', fontSize: '13px' }}>{new Date(r.created_at).toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  </div>
+                  <span style={{ padding: '4px 12px', borderRadius: '20px', background: '#e8f0fe', color: '#1a73e8', fontSize: '12px', fontWeight: 'bold' }}>
+                    👨‍⚕️ Dr. {r.profiles?.name}
+                  </span>
+                </div>
+                {r.diagnosis && (
+                  <div style={{ marginBottom: '10px', padding: '12px', background: '#fff7ed', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>
+                    <p style={{ fontWeight: 'bold', color: '#92400e', margin: '0 0 4px', fontSize: '13px' }}>🔍 Diagnosis / Main Problem:</p>
+                    <p style={{ margin: 0, color: '#333' }}>{r.diagnosis}</p>
+                  </div>
+                )}
+                {r.prescription && (
+                  <div style={{ marginBottom: '10px', padding: '12px', background: '#f0fdf9', borderRadius: '8px', borderLeft: '4px solid #0d9488' }}>
+                    <p style={{ fontWeight: 'bold', color: '#0d9488', margin: '0 0 4px', fontSize: '13px' }}>💊 Prescription / Doctor's Advice:</p>
+                    <p style={{ margin: 0, color: '#333' }}>{r.prescription}</p>
+                  </div>
+                )}
+                {r.notes && (
+                  <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>📋 {r.notes}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
       {chatCase && <ChatBox caseId={chatCase.id} caseNumber={chatCase.case_number} user={user} onClose={() => setChatCase(null)} />}
     </div>
   )
@@ -456,6 +503,15 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
     await supabase.from('notifications').insert({
       user_id: selected.patient_id, title: 'Doctor replied to your case',
       message: `Case #${selected.case_number}: ${reply.substring(0, 50)}...`
+    })
+    // Auto-save as medical record
+    await supabase.from('medical_records').insert({
+      patient_id: selected.patient_id,
+      doctor_id: user.id,
+      case_id: selected.id,
+      diagnosis: selected.answers?.[0]?.answer || '',
+      prescription: reply,
+      notes: `Case #${selected.case_number}`
     })
     setSent(true); fetchCases(); setLoading(false)
   }
