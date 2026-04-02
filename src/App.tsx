@@ -149,6 +149,100 @@ function ChatBox({ caseId, caseNumber, user, onClose }: {
   )
 }
 
+
+// =================== NOTIFICATION BELL ===================
+function NotificationBell({ userId }: { userId: string }) {
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  useEffect(() => {
+    fetchNotifications()
+    // Real-time subscription
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'notifications',
+        filter: `user_id=eq.${userId}`
+      }, (payload) => {
+        setNotifications(prev => [payload.new, ...prev])
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [userId])
+
+  const fetchNotifications = async () => {
+    const { data } = await supabase
+      .from('notifications').select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10)
+    setNotifications(data || [])
+  }
+
+  const markAllRead = async () => {
+    await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId)
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+  }
+
+  const unreadCount = notifications.filter(n => !n.is_read).length
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setShowDropdown(!showDropdown)}
+        style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', position: 'relative' }}
+      >
+        <span style={{ fontSize: '18px' }}>🔔</span>
+        {unreadCount > 0 && (
+          <span style={{
+            position: 'absolute', top: '-4px', right: '-4px',
+            background: '#ef4444', color: 'white', borderRadius: '50%',
+            width: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+        )}
+      </button>
+
+      {showDropdown && (
+        <div style={{
+          position: 'absolute', top: '44px', right: 0, width: '320px',
+          background: 'white', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+          zIndex: 999, overflow: 'hidden'
+        }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 'bold', color: '#1e293b' }}>🔔 Notifications</span>
+            {unreadCount > 0 && (
+              <button onClick={markAllRead} style={{ fontSize: '12px', color: '#1a73e8', background: 'none', border: 'none', cursor: 'pointer' }}>
+                Mark all read
+              </button>
+            )}
+          </div>
+          <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+            {notifications.length === 0 && (
+              <p style={{ textAlign: 'center', color: '#888', padding: '24px', fontSize: '14px' }}>No notifications yet!</p>
+            )}
+            {notifications.map((n: any) => (
+              <div key={n.id} style={{
+                padding: '12px 16px', borderBottom: '1px solid #f8f8f8',
+                background: n.is_read ? 'white' : '#eff6ff',
+                cursor: 'pointer'
+              }}>
+                <p style={{ margin: '0 0 4px', fontWeight: 'bold', fontSize: '13px', color: '#1e293b' }}>{n.title}</p>
+                <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#555' }}>{n.message}</p>
+                <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>{new Date(n.created_at).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showDropdown && (
+        <div onClick={() => setShowDropdown(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
+      )}
+    </div>
+  )
+}
+
 // =================== LOGIN ===================
 function Login({ onLogin }: { onLogin: (user: User) => void }) {
   const [isRegister, setIsRegister] = useState(false)
@@ -317,6 +411,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
           <button onClick={() => setStep('questions')} style={{ background: step === 'questions' ? 'white' : 'transparent', color: step === 'questions' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>📝 New Case</button>
           <button onClick={() => { setStep('cases'); fetchCases() }} style={{ background: step === 'cases' ? 'white' : 'transparent', color: step === 'cases' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>📋 My Cases</button>
           <button onClick={() => { setStep('records'); fetchRecords() }} style={{ background: step === 'records' ? 'white' : 'transparent', color: step === 'records' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>🏥 Medical Records</button>
+          <NotificationBell userId={user.id} />
           <span style={{ color: 'white' }}>👋 {user.name}</span>
           <button onClick={onLogout} style={{ background: 'white', color: '#1a73e8', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>Logout</button>
         </div>
@@ -521,6 +616,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
       <nav style={{ background: '#0d9488', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ color: 'white', margin: 0 }}>🏥 MediConnect</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <NotificationBell userId={user.id} />
           <span style={{ color: 'white' }}>👨‍⚕️ {user.name}</span>
           <button onClick={onLogout} style={{ background: 'white', color: '#0d9488', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>Logout</button>
         </div>
