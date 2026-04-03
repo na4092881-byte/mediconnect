@@ -424,17 +424,17 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
         <div className="nav-logo">
           <span>🏥</span> MediConnect
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={() => setStep('questions')} className={`nav-btn ${step === 'questions' ? 'active' : ''}`}>📝 New Case</button>
-          <button onClick={() => { setStep('cases'); fetchCases() }} className={`nav-btn ${step === 'cases' ? 'active' : ''}`}>📋 My Cases</button>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button onClick={() => setStep('questions')} className={`nav-btn ${step === 'questions' ? 'active' : ''}`}>📝 New</button>
+          <button onClick={() => { setStep('cases'); fetchCases() }} className={`nav-btn ${step === 'cases' ? 'active' : ''}`}>📋 Cases</button>
           <button onClick={() => { setStep('records'); fetchRecords() }} className={`nav-btn ${step === 'records' ? 'active' : ''}`}>🏥 Records</button>
           <NotificationBell userId={user.id} />
-          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginLeft: '4px' }}>👋 {user.name}</span>
-          <button onClick={onLogout} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Logout</button>
+          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>👋 {user.name}</span>
+          <button onClick={onLogout} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>Logout</button>
         </div>
       </nav>
 
-      <div style={{ maxWidth: '800px', margin: '24px auto', padding: '0 16px' }}>
+      <div style={{ maxWidth: '800px', margin: '20px auto', padding: '0 12px' }}>
         {step === 'questions' && (
           <div style={{ background: 'white', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -686,8 +686,8 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
         </div>
       </nav>
 
-      <div style={{ maxWidth: '900px', margin: '24px auto', padding: '0 16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ maxWidth: '900px', margin: '20px auto', padding: '0 12px' }}>
+        <div className='stats-grid' style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
           {[
             { label: 'Total Cases', value: cases.length, color: '#1a73e8' },
             { label: 'Pending', value: cases.filter(c => c.status === 'pending').length, color: '#f59e0b' },
@@ -714,7 +714,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
                   <span style={{ marginLeft: '8px', fontSize: '12px', color: '#1a73e8', background: '#e8f0fe', padding: '2px 8px', borderRadius: '10px' }}>📎 {c.file_paths.length} file(s)</span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div className='case-actions' style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
                   background: c.status === 'reviewed' ? '#e6f4ea' : '#fef3cd',
                   color: c.status === 'reviewed' ? '#137333' : '#856404' }}>
@@ -846,7 +846,7 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
         {activeTab === 'overview' && (
           <div>
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '14px', marginBottom: '24px' }}>
+            <div className='stats-grid' style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px' }}>
               {[
                 { label: 'Total Users', value: users.length, color: '#1a73e8', icon: '👥' },
                 { label: 'Doctors', value: users.filter(u => u.role === 'doctor').length, color: '#0d9488', icon: '👨‍⚕️' },
