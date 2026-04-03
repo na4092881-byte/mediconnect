@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase'
+import './index.css'
 
 type Role = 'patient' | 'doctor' | 'admin'
 type User = { id: string; name: string; email: string; role: Role }
@@ -282,44 +283,58 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', width: '420px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
-        <h1 style={{ color: '#1a73e8', textAlign: 'center', marginBottom: '4px', fontSize: '28px' }}>🏥 MediConnect</h1>
-        <p style={{ textAlign: 'center', color: '#666', marginBottom: '24px' }}>Bridging doctors and patients</p>
-        {msg && <p style={{ color: 'green', textAlign: 'center', marginBottom: '12px' }}>{msg}</p>}
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>I am a:</p>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+    <div className="login-page">
+      <div className="login-card">
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{ width: '60px', height: '60px', background: 'linear-gradient(135deg, #0A1628, #0F2241)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 4px 20px rgba(10,22,40,0.2)' }}>
+            <span style={{ fontSize: '28px' }}>🏥</span>
+          </div>
+          <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: '28px', color: '#0A1628', marginBottom: '4px' }}>MediConnect</h1>
+          <p style={{ color: '#94A3B8', fontSize: '14px' }}>Bridging doctors and patients</p>
+        </div>
+
+        {msg && (
+          <div style={{ background: '#D1FAE5', border: '1px solid #6EE7B7', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', color: '#065F46', fontSize: '14px', fontWeight: '500' }}>
+            ✅ {msg}
+          </div>
+        )}
+
+        {/* Role Selector */}
+        <p style={{ fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>I am a</p>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
           {(['patient', 'doctor', 'admin'] as Role[]).map(r => (
-            <button key={r} onClick={() => setRole(r)} style={{
-              flex: 1, padding: '10px', borderRadius: '8px',
-              border: role === r ? '2px solid #1a73e8' : '2px solid #ddd',
-              background: role === r ? '#e8f0fe' : 'white',
-              color: role === r ? '#1a73e8' : '#666', cursor: 'pointer', fontWeight: 'bold'
-            }}>
+            <button key={r} onClick={() => setRole(r)} className={`role-btn ${role === r ? 'active' : ''}`}>
               {r === 'patient' ? '🧑 Patient' : r === 'doctor' ? '👨‍⚕️ Doctor' : '👨‍💼 Admin'}
             </button>
           ))}
         </div>
-        {isRegister && (
-          <input placeholder="Full Name" value={name} onChange={e => setName(e.target.value)}
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' as const }} />
+
+        {/* Form Fields */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+          {isRegister && (
+            <input className="input-field" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
+          )}
+          {isRegister && role === 'doctor' && (
+            <input className="input-field" placeholder="Specialization (e.g. General Physician)" value={specialization} onChange={e => setSpecialization(e.target.value)} />
+          )}
+          <input className="input-field" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
+          <input className="input-field" placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+        </div>
+
+        {error && (
+          <div style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', color: '#991B1B', fontSize: '13px' }}>
+            ⚠️ {error}
+          </div>
         )}
-        {isRegister && role === 'doctor' && (
-          <input placeholder="Specialization (e.g. General Physician)" value={specialization} onChange={e => setSpecialization(e.target.value)}
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' as const }} />
-        )}
-        <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
-          style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' as const }} />
-        <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)}
-          style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' as const }} />
-        {error && <p style={{ color: 'red', marginBottom: '12px', fontSize: '14px' }}>{error}</p>}
-        <button onClick={isRegister ? handleRegister : handleLogin} disabled={loading} style={{
-          width: '100%', padding: '14px', background: loading ? '#ccc' : '#1a73e8', color: 'white',
-          border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer', fontWeight: 'bold'
-        }}>{loading ? 'Please wait...' : isRegister ? 'Create Account' : 'Sign In'}</button>
-        <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '14px' }}>
-          {isRegister ? 'Already have account? ' : "Don't have account? "}
-          <span onClick={() => { setIsRegister(!isRegister); setError('') }} style={{ color: '#1a73e8', cursor: 'pointer', fontWeight: 'bold' }}>
+
+        <button onClick={isRegister ? handleRegister : handleLogin} disabled={loading} className="btn-navy" style={{ marginBottom: '16px' }}>
+          {loading ? '⏳ Please wait...' : isRegister ? 'Create Account →' : 'Sign In →'}
+        </button>
+
+        <p style={{ textAlign: 'center', fontSize: '14px', color: '#94A3B8' }}>
+          {isRegister ? 'Already have an account? ' : "Don't have an account? "}
+          <span onClick={() => { setIsRegister(!isRegister); setError('') }} style={{ color: '#0D9488', cursor: 'pointer', fontWeight: '600' }}>
             {isRegister ? 'Sign In' : 'Register'}
           </span>
         </p>
@@ -404,16 +419,18 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
-      <nav style={{ background: '#1a73e8', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ color: 'white', margin: 0 }}>🏥 MediConnect</h2>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button onClick={() => setStep('questions')} style={{ background: step === 'questions' ? 'white' : 'transparent', color: step === 'questions' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>📝 New Case</button>
-          <button onClick={() => { setStep('cases'); fetchCases() }} style={{ background: step === 'cases' ? 'white' : 'transparent', color: step === 'cases' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>📋 My Cases</button>
-          <button onClick={() => { setStep('records'); fetchRecords() }} style={{ background: step === 'records' ? 'white' : 'transparent', color: step === 'records' ? '#1a73e8' : 'white', border: '1px solid white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}>🏥 Medical Records</button>
+    <div style={{ minHeight: '100vh', background: 'var(--off-white)' }}>
+      <nav className="nav-main">
+        <div className="nav-logo">
+          <span>🏥</span> MediConnect
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button onClick={() => setStep('questions')} className={`nav-btn ${step === 'questions' ? 'active' : ''}`}>📝 New Case</button>
+          <button onClick={() => { setStep('cases'); fetchCases() }} className={`nav-btn ${step === 'cases' ? 'active' : ''}`}>📋 My Cases</button>
+          <button onClick={() => { setStep('records'); fetchRecords() }} className={`nav-btn ${step === 'records' ? 'active' : ''}`}>🏥 Records</button>
           <NotificationBell userId={user.id} />
-          <span style={{ color: 'white' }}>👋 {user.name}</span>
-          <button onClick={onLogout} style={{ background: 'white', color: '#1a73e8', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>Logout</button>
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginLeft: '4px' }}>👋 {user.name}</span>
+          <button onClick={onLogout} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Logout</button>
         </div>
       </nav>
 
@@ -590,6 +607,48 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
     setFileUrls(urls.filter(u => u.url))
   }
 
+  const sendEmailNotification = async (toEmail: string, patientName: string, caseNumber: string, prescription: string) => {
+    try {
+      const apiKey = import.meta.env.VITE_RESEND_API_KEY
+      if (!apiKey) return
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          from: 'MediConnect <onboarding@resend.dev>',
+          to: [toEmail],
+          subject: `Doctor replied to your case #${caseNumber}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background: #1a73e8; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0;">🏥 MediConnect</h1>
+                <p style="color: #cce0ff; margin: 8px 0 0;">Your doctor has replied!</p>
+              </div>
+              <div style="background: #f8fafc; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0;">
+                <p style="color: #333; font-size: 16px;">Dear <strong>${patientName}</strong>,</p>
+                <p style="color: #555;">Your doctor has reviewed your case <strong>#${caseNumber}</strong> and sent a reply.</p>
+                <div style="background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                  <p style="font-weight: bold; color: #1a73e8; margin: 0 0 8px;">💊 Doctor's Prescription/Advice:</p>
+                  <p style="color: #333; margin: 0;">${prescription}</p>
+                </div>
+                <p style="color: #555;">Login to MediConnect to view full details and chat with your doctor.</p>
+                <div style="text-align: center; margin-top: 24px;">
+                  <a href="https://mediconnect-git-main-na4092881-bytes-projects.vercel.app" 
+                     style="background: #1a73e8; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                    View on MediConnect
+                  </a>
+                </div>
+                <p style="color: #888; font-size: 12px; margin-top: 24px; text-align: center;">MediConnect — Bridging Doctors and Patients</p>
+              </div>
+            </div>
+          `
+        })
+      })
+    } catch (e) {
+      console.log('Email error:', e)
+    }
+  }
+
   const handleReply = async () => {
     if (!reply.trim() || !selected) return
     setLoading(true)
@@ -599,6 +658,8 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
       user_id: selected.patient_id, title: 'Doctor replied to your case',
       message: `Case #${selected.case_number}: ${reply.substring(0, 50)}...`
     })
+    // Send email notification
+    await sendEmailNotification(selected.profiles?.email, selected.profiles?.name, selected.case_number, reply)
     // Auto-save as medical record
     await supabase.from('medical_records').insert({
       patient_id: selected.patient_id,
@@ -613,12 +674,15 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
-      <nav style={{ background: '#0d9488', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ color: 'white', margin: 0 }}>🏥 MediConnect</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <nav className="nav-main">
+        <div className="nav-logo">
+          <span>🏥</span> MediConnect
+          <span style={{ fontSize: '12px', background: 'rgba(13,148,136,0.3)', color: '#5EEAD4', padding: '3px 10px', borderRadius: '20px', marginLeft: '8px', fontFamily: "'DM Sans', sans-serif", fontWeight: '500' }}>Doctor</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <NotificationBell userId={user.id} />
-          <span style={{ color: 'white' }}>👨‍⚕️ {user.name}</span>
-          <button onClick={onLogout} style={{ background: 'white', color: '#0d9488', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>Logout</button>
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>👨‍⚕️ {user.name}</span>
+          <button onClick={onLogout} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Logout</button>
         </div>
       </nav>
 
@@ -753,8 +817,11 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
-      <nav style={{ background: '#7c3aed', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ color: 'white', margin: 0 }}>🏥 MediConnect Admin</h2>
+      <nav className="nav-main">
+        <div className="nav-logo">
+          <span>🏥</span> MediConnect
+          <span style={{ fontSize: '12px', background: 'rgba(124,58,237,0.3)', color: '#C4B5FD', padding: '3px 10px', borderRadius: '20px', marginLeft: '8px', fontFamily: "'DM Sans', sans-serif", fontWeight: '500' }}>Admin</span>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Tab Buttons */}
           {[
