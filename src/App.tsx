@@ -6,14 +6,27 @@ type Role = 'patient' | 'doctor' | 'admin'
 type User = { id: string; name: string; email: string; role: Role }
 
 const QUESTIONS = [
-  { en: "What is your main problem today?", hi: "आज आपकी मुख्य समस्या क्या है?", hinglish: "Aaj aapki main problem kya hai?" },
-  { en: "Since when are you facing this problem?", hi: "यह समस्या कब से है?", hinglish: "Ye problem kab se hai?" },
-  { en: "Where exactly is the pain or discomfort?", hi: "दर्द या तकलीफ कहाँ है?", hinglish: "Dard ya takleef kahan hai?" },
-  { en: "Do you have fever? If yes, how much?", hi: "क्या बुखार है? अगर हाँ तो कितना?", hinglish: "Kya bukhar hai? Agar haan to kitna?" },
-  { en: "Do you have any existing medical conditions?", hi: "क्या आपको पहले से कोई बीमारी है?", hinglish: "Kya aapko pehle se koi bimari hai?" },
-  { en: "Are you currently taking any medicines?", hi: "क्या आप अभी कोई दवाई ले रहे हैं?", hinglish: "Kya aap abhi koi dawai le rahe hain?" },
-  { en: "Do you have any allergies?", hi: "क्या आपको कोई एलर्जी है?", hinglish: "Kya aapko koi allergy hai?" },
-  { en: "How would you rate your pain? (1-10)", hi: "आपका दर्द कितना है? (1-10)", hinglish: "Aapka dard kitna hai? (1-10)" },
+  { en: "Do you have history of cough?", hi: "क्या आपको खांसी का इतिहास है?", hinglish: "Kya aapko khansi ki history hai?" },
+  { en: "Do you have expectoration?", hi: "क्या आपको बलगम आता है?", hinglish: "Kya aapko balgam aata hai?" },
+  { en: "Do you feel breathless on climbing two flights of stairs?", hi: "क्या दो मंजिल सीढ़ियाँ चढ़ने पर सांस फूलती है?", hinglish: "Kya do floor seedhiyan chadhne par saans phoolti hai?" },
+  { en: "Can you perform your daily routine work without getting breathless?", hi: "क्या आप बिना सांस फूले अपना रोज़ का काम कर सकते हैं?", hinglish: "Kya aap bina saans phoole apna daily kaam kar sakte hain?" },
+  { en: "Do you have history of chest pain?", hi: "क्या आपको सीने में दर्द का इतिहास है?", hinglish: "Kya aapko chest pain ki history hai?" },
+  { en: "Do you have increased BP (Hypertension)?", hi: "क्या आपको हाई ब्लड प्रेशर है?", hinglish: "Kya aapko high BP hai?" },
+  { en: "Do you have swelling in the body?", hi: "क्या शरीर में सूजन है?", hinglish: "Kya sharir mein swelling hai?" },
+  { en: "Do you smoke?", hi: "क्या आप धूम्रपान करते हैं?", hinglish: "Kya aap smoking karte ho?" },
+  { en: "Do you consume alcohol?", hi: "क्या आप शराब पीते हैं?", hinglish: "Kya aap alcohol lete ho?" },
+  { en: "Did you have jaundice?", hi: "क्या आपको पीलिया हुआ था?", hinglish: "Kya aapko jaundice hua tha?" },
+  { en: "Do you have history of high blood sugar (Diabetes)?", hi: "क्या आपको डायबिटीज है?", hinglish: "Kya aapko diabetes hai?" },
+  { en: "Do you have history of thyroid disease?", hi: "क्या आपको थायरॉइड की बीमारी है?", hinglish: "Kya aapko thyroid ki problem hai?" },
+  { en: "Do you have any history of having fits?", hi: "क्या आपको दौरे पड़ने का इतिहास है?", hinglish: "Kya aapko fits ki history hai?" },
+  { en: "Do you have history of fainting?", hi: "क्या बेहोशी का इतिहास है?", hinglish: "Kya aapko faint hone ki history hai?" },
+  { en: "Do you snore while sleeping?", hi: "क्या सोते समय खर्राटे आते हैं?", hinglish: "Kya aap sote waqt kharate lete ho?" },
+  { en: "Is there any history of previous hospitalisation?", hi: "क्या पहले कभी अस्पताल में भर्ती हुए हैं?", hinglish: "Kya pehle kabhi hospital me admit hue ho?" },
+  { en: "Is there any history of blood transfusion?", hi: "क्या कभी खून चढ़ाया गया है?", hinglish: "Kya kabhi blood chadhaya gaya hai?" },
+  { en: "Is there any history of drug/medicine intake?", hi: "क्या कोई दवा चल रही है?", hinglish: "Kya koi medicine chal rahi hai?" },
+  { en: "Are you on any treatment?", hi: "क्या आपका कोई इलाज चल रहा है?", hinglish: "Kya aapka koi treatment chal raha hai?" },
+  { en: "Is there any history of palpitation?", hi: "क्या दिल की धड़कन तेज होने की शिकायत है?", hinglish: "Kya dil ki dhadkan tez hone ki problem hai?" },
+  { en: "Is there any history of heart attack?", hi: "क्या हार्ट अटैक का इतिहास है?", hinglish: "Kya heart attack ki history hai?" }
 ]
 
 type Lang = 'en' | 'hi' | 'hinglish'
@@ -354,11 +367,18 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
   const [newCaseId, setNewCaseId] = useState('')
   const [chatCase, setChatCase] = useState<any | null>(null)
   const [records, setRecords] = useState<any[]>([])
+  const [doctors, setDoctors] = useState<any[]>([])
+  const [selectedDoctorId, setSelectedDoctorId] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [uploadProgress, setUploadProgress] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { fetchCases(); fetchRecords() }, [])
+  useEffect(() => { fetchCases(); fetchRecords(); fetchDoctors() }, [])
+
+  const fetchDoctors = async () => {
+    const { data } = await supabase.from('profiles').select('id, name, specialization').eq('role', 'doctor')
+    setDoctors(data || [])
+  }
 
   const fetchCases = async () => {
     const { data } = await supabase.from('cases').select('*, feedback(*)').eq('patient_id', user.id).order('created_at', { ascending: false })
@@ -400,6 +420,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
     const caseNumber = 'MC-' + Date.now()
     const { data } = await supabase.from('cases').insert({
       case_number: caseNumber, patient_id: user.id,
+      doctor_id: selectedDoctorId || null,
       answers: QUESTIONS.map((q, i) => ({ question: q.en, answer: answers[i] }))
     }).select().single()
     if (data) {
@@ -491,6 +512,23 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                     border: '2px solid #1a73e8', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px'
                   }}>+ Add Files</button>
                   {uploadProgress && <p style={{ color: '#1a73e8', fontSize: '13px', marginTop: '8px' }}>⏳ {uploadProgress}</p>}
+                </div>
+
+                {/* Doctor Selection */}
+                <div style={{ marginBottom: '20px', padding: '16px', background: '#f0fdf9', borderRadius: '12px', border: '1px solid #d1fae5' }}>
+                  <p style={{ fontWeight: 'bold', color: '#0d9488', marginBottom: '10px', fontSize: '14px' }}>👨‍⚕️ Select Your Doctor</p>
+                  <select
+                    value={selectedDoctorId}
+                    onChange={e => setSelectedDoctorId(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1fae5', fontSize: '14px', background: 'white', color: '#1e293b' }}
+                  >
+                    <option value="">-- Select a Doctor --</option>
+                    {doctors.map((d: any) => (
+                      <option key={d.id} value={d.id}>
+                        👨‍⚕️ Dr. {d.name} {d.specialization ? `— ${d.specialization}` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <button onClick={handleSubmit} disabled={loading} style={{
@@ -594,7 +632,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
   useEffect(() => { fetchCases() }, [])
 
   const fetchCases = async () => {
-    const { data } = await supabase.from('cases').select('*, profiles!cases_patient_id_fkey(name, email), feedback(*)').order('created_at', { ascending: false })
+    const { data } = await supabase.from('cases').select('*, profiles!cases_patient_id_fkey(name, email), feedback(*)').eq('doctor_id', user.id).order('created_at', { ascending: false })
     setCases(data || [])
   }
 
