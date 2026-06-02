@@ -356,11 +356,176 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
   )
 }
 
+function PatientHome({ user, cases, records, onNavigate }: {
+  user: any;
+  cases: any[];
+  records: any[];
+  onNavigate: (step: string) => void;
+}) {
+  const pendingCases = cases.filter((c: any) => c.status !== 'reviewed').length
+  const reviewedCases = cases.filter((c: any) => c.status === 'reviewed').length
+  const recentCase = cases[0]
+  const recentRecord = records[0]
+
+  const now = new Date()
+  const hour = now.getHours()
+  const greeting = hour < 12 ? '🌅 Good Morning' : hour < 17 ? '☀️ Good Afternoon' : '🌙 Good Evening'
+
+  return (
+    <div style={{ padding: '20px 0' }}>
+
+      {/* Welcome Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0A1628 0%, #0F2241 50%, #0d9488 100%)',
+        borderRadius: '20px',
+        padding: '28px 24px',
+        marginBottom: '24px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        <div style={{ position: 'absolute', bottom: -20, right: 40, width: 90, height: 90, borderRadius: '50%', background: 'rgba(13,148,136,0.3)' }} />
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', marginBottom: '6px' }}>{greeting}</p>
+        <h2 style={{ color: 'white', fontSize: '24px', margin: '0 0 6px', fontFamily: 'DM Serif Display, serif' }}>
+          {user.name} 👋
+        </h2>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: 0 }}>
+          Welcome to your health dashboard
+        </p>
+      </div>
+
+      {/* Stats Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        {[
+          { label: 'Total Cases', value: cases.length, icon: '📋', color: '#3B82F6', bg: '#EFF6FF' },
+          { label: 'Pending', value: pendingCases, icon: '⏳', color: '#F59E0B', bg: '#FEF3C7' },
+          { label: 'Records', value: records.length, icon: '🏥', color: '#10B981', bg: '#D1FAE5' },
+        ].map((s, i) => (
+          <div key={i} className="stat-card" style={{ textAlign: 'center', padding: '16px 10px' }}>
+            <div style={{ fontSize: '26px', marginBottom: '6px' }}>{s.icon}</div>
+            <div style={{ fontSize: '26px', fontWeight: '700', color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px', fontWeight: '500' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0A1628', marginBottom: '12px' }}>Quick Actions</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+        {[
+          { icon: '📝', label: 'New Case', desc: 'Submit symptoms', color: '#0d9488', step: 'questions' },
+          { icon: '📋', label: 'My Cases', desc: `${cases.length} total`, color: '#3B82F6', step: 'cases' },
+          { icon: '🏥', label: 'Records', desc: `${records.length} records`, color: '#8B5CF6', step: 'records' },
+          { icon: '💬', label: 'Chat Doctor', desc: 'Open cases', color: '#F59E0B', step: 'cases' },
+        ].map((a, i) => (
+          <button key={i} onClick={() => onNavigate(a.step)} style={{
+            background: 'white',
+            border: `2px solid ${a.color}20`,
+            borderRadius: '14px',
+            padding: '16px 14px',
+            cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+          >
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>{a.icon}</div>
+            <div style={{ fontWeight: '600', color: '#0A1628', fontSize: '14px' }}>{a.label}</div>
+            <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>{a.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Recent Case */}
+      {recentCase && (
+        <>
+          <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0A1628', marginBottom: '12px' }}>Recent Activity</h3>
+          <div style={{
+            background: 'white',
+            borderRadius: '14px',
+            padding: '16px',
+            marginBottom: '12px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontWeight: '600', color: '#3B82F6', fontSize: '14px' }}>📋 #{recentCase.case_number}</span>
+              <span style={{
+                padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
+                background: recentCase.status === 'reviewed' ? '#D1FAE5' : '#FEF3C7',
+                color: recentCase.status === 'reviewed' ? '#065F46' : '#92400E'
+              }}>
+                {recentCase.status === 'reviewed' ? '✅ Reviewed' : '⏳ Pending'}
+              </span>
+            </div>
+            <p style={{ color: '#64748B', fontSize: '13px', margin: '0 0 10px' }}>
+              Submitted: {new Date(recentCase.created_at).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+            {recentCase.feedback?.length > 0 && (
+              <div style={{ background: '#EFF6FF', padding: '10px 12px', borderRadius: '10px', borderLeft: '3px solid #3B82F6' }}>
+                <p style={{ color: '#3B82F6', fontWeight: '600', fontSize: '12px', margin: '0 0 4px' }}>👨‍⚕️ Doctor's Reply:</p>
+                <p style={{ color: '#333', fontSize: '13px', margin: 0 }}>{recentCase.feedback[0].message}</p>
+              </div>
+            )}
+            <button onClick={() => onNavigate('cases')} style={{
+              marginTop: '12px', padding: '8px 16px', background: '#0d9488', color: 'white',
+              border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'
+            }}>View All Cases →</button>
+          </div>
+        </>
+      )}
+
+      {/* Recent Record */}
+      {recentRecord && (
+        <div style={{
+          background: 'white',
+          borderRadius: '14px',
+          padding: '16px',
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontWeight: '600', color: '#8B5CF6', fontSize: '14px' }}>🏥 Latest Medical Record</span>
+            <span style={{ fontSize: '12px', color: '#94A3B8' }}>
+              {new Date(recentRecord.created_at).toLocaleDateString()}
+            </span>
+          </div>
+          {recentRecord.diagnosis && (
+            <p style={{ color: '#333', fontSize: '13px', margin: '0 0 8px' }}>🔍 {recentRecord.diagnosis}</p>
+          )}
+          <p style={{ color: '#64748B', fontSize: '12px', margin: 0 }}>
+            👨‍⚕️ Dr. {recentRecord.profiles?.name} {recentRecord.profiles?.specialization ? `— ${recentRecord.profiles.specialization}` : ''}
+          </p>
+          <button onClick={() => onNavigate('records')} style={{
+            marginTop: '12px', padding: '8px 16px', background: '#8B5CF6', color: 'white',
+            border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'
+          }}>View All Records →</button>
+        </div>
+      )}
+
+      {/* Empty state — no cases yet */}
+      {cases.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">🏥</div>
+          <p style={{ fontWeight: '600', color: '#0A1628', marginBottom: '8px' }}>No cases yet!</p>
+          <p>Submit your first case to get started</p>
+          <button onClick={() => onNavigate('questions')} style={{
+            marginTop: '16px', padding: '12px 24px', background: '#0d9488', color: 'white',
+            border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px'
+          }}>+ Submit First Case</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // =================== PATIENT ===================
 function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [lang, setLang] = useState<Lang>('en')
   const [answers, setAnswers] = useState<string[]>(Array(QUESTIONS.length).fill(''))
-  const [step, setStep] = useState<'questions' | 'cases' | 'records'>('questions')
+  const [step, setStep] = useState<'home' | 'questions' | 'cases' | 'records'>('home')
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [cases, setCases] = useState<any[]>([])
@@ -446,7 +611,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
           <span>🏥</span> MediConnect
         </div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button onClick={() => setStep('questions')} className={`nav-btn ${step === 'questions' ? 'active' : ''}`}>📝 New</button>
+          <button onClick={() => setStep('home')} className={`nav-btn ${step === 'home' ? 'active' : ''}`}>🏠 Home</button>
           <button onClick={() => { setStep('cases'); fetchCases() }} className={`nav-btn ${step === 'cases' ? 'active' : ''}`}>📋 Cases</button>
           <button onClick={() => { setStep('records'); fetchRecords() }} className={`nav-btn ${step === 'records' ? 'active' : ''}`}>🏥 Records</button>
           <NotificationBell userId={user.id} />
@@ -456,6 +621,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
       </nav>
 
       <div style={{ maxWidth: '800px', margin: '20px auto', padding: '0 12px' }}>
+        {step === 'home' && <PatientHome user={user} cases={cases} records={records} onNavigate={(s) => setStep(s as any)} />}
         {step === 'questions' && (
           <div style={{ background: 'white', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
