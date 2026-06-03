@@ -363,7 +363,6 @@ function PatientHome({ user, cases, records, onNavigate }: {
   onNavigate: (step: string) => void;
 }) {
   const pendingCases = cases.filter((c: any) => c.status !== 'reviewed').length
-  const reviewedCases = cases.filter((c: any) => c.status === 'reviewed').length
   const recentCase = cases[0]
   const recentRecord = records[0]
 
@@ -1238,11 +1237,72 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
 // =================== MAIN ===================
 export default function App() {
   const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)  // ← naya
+
+  // ── Auto login: page reload pe bhi logged in rahe ──────
+  useEffect(() => {
+    // Check karo kya pehle se session hai
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+        if (profile && !profile.blocked) {
+          setUser({
+            id: session.user.id,
+            name: profile.name,
+            email: profile.email,
+            role: profile.role,
+          })
+        }
+      }
+      setLoading(false)
+    })
+
+    // Auth state change listen karo (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, _session) => {
+        if (event === 'SIGNED_OUT') {
+          setUser(null)
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setUser(null)
   }
+
+  // Loading screen
+  if (loading) return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0A1628, #0F2241)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      gap: '16px',
+    }}>
+      <div style={{
+        width: '60px', height: '60px',
+        background: 'linear-gradient(135deg, #0d9488, #14B8A6)',
+        borderRadius: '16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '28px',
+        boxShadow: '0 8px 24px rgba(13,148,136,0.4)',
+        animation: 'pulse 1.5s ease-in-out infinite',
+      }}>🏥</div>
+      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', fontFamily: 'DM Sans, sans-serif' }}>
+        Loading MediConnect...
+      </p>
+    </div>
+  )
 
   if (!user) return <Login onLogin={setUser} />
   if (user.role === 'patient') return <PatientDashboard user={user} onLogout={handleLogout} />
