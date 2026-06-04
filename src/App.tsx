@@ -283,13 +283,49 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
 
   const handleRegister = async () => {
     setLoading(true); setError('')
-    const { data, error } = await supabase.auth.signUp({ email, password })
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address!')
+      setLoading(false); return
+    }
+
+    if (name.trim().length < 2) {
+      setError('Please enter your full name!')
+      setLoading(false); return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters!')
+      setLoading(false); return
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      }
+    })
+
     if (error) { setError(error.message); setLoading(false); return }
+
     if (data.user) {
       await supabase.from('profiles').insert({
-        id: data.user.id, name, email, role, specialization: role === 'doctor' ? specialization : null
+        id: data.user.id,
+        name: name.trim(),
+        email,
+        role,
+        specialization: role === 'doctor' ? specialization : null
       })
-      setMsg('Account created! Please login now.')
+
+      if (data.user.identities?.length === 0) {
+        setError('This email is already registered! Please login.')
+      } else if (!data.session) {
+        setMsg('✅ Account created! Please check your email to verify, then login.')
+      } else {
+        setMsg('✅ Account created! Please login now.')
+      }
       setIsRegister(false)
     }
     setLoading(false)
