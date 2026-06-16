@@ -163,7 +163,6 @@ function ChatBox({ caseId, caseNumber, user, onClose }: {
   )
 }
 
-
 // =================== NOTIFICATION BELL ===================
 function NotificationBell({ userId }: { userId: string }) {
   const [notifications, setNotifications] = useState<any[]>([])
@@ -171,7 +170,6 @@ function NotificationBell({ userId }: { userId: string }) {
 
   useEffect(() => {
     fetchNotifications()
-    // Real-time subscription
     const channel = supabase
       .channel(`notifications-${userId}`)
       .on('postgres_changes', {
@@ -283,42 +281,19 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
 
   const handleRegister = async () => {
     setLoading(true); setError('')
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address!')
-      setLoading(false); return
-    }
-
-    if (name.trim().length < 2) {
-      setError('Please enter your full name!')
-      setLoading(false); return
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters!')
-      setLoading(false); return
-    }
-
+    if (!emailRegex.test(email)) { setError('Please enter a valid email address!'); setLoading(false); return }
+    if (name.trim().length < 2) { setError('Please enter your full name!'); setLoading(false); return }
+    if (password.length < 6) { setError('Password must be at least 6 characters!'); setLoading(false); return }
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-      }
+      email, password, options: { emailRedirectTo: window.location.origin }
     })
-
     if (error) { setError(error.message); setLoading(false); return }
-
     if (data.user) {
       await supabase.from('profiles').insert({
-        id: data.user.id,
-        name: name.trim(),
-        email,
-        role,
+        id: data.user.id, name: name.trim(), email, role,
         specialization: role === 'doctor' ? specialization : null
       })
-
       if (data.user.identities?.length === 0) {
         setError('This email is already registered! Please login.')
       } else if (!data.session) {
@@ -334,7 +309,6 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
   return (
     <div className="login-page">
       <div className="login-card">
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{ width: '60px', height: '60px', background: 'linear-gradient(135deg, #0A1628, #0F2241)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 4px 20px rgba(10,22,40,0.2)' }}>
             <span style={{ fontSize: '28px' }}>🏥</span>
@@ -342,14 +316,11 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
           <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: '28px', color: '#0A1628', marginBottom: '4px' }}>MediConnect</h1>
           <p style={{ color: '#94A3B8', fontSize: '14px' }}>Bridging doctors and patients</p>
         </div>
-
         {msg && (
           <div style={{ background: '#D1FAE5', border: '1px solid #6EE7B7', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', color: '#065F46', fontSize: '14px', fontWeight: '500' }}>
             ✅ {msg}
           </div>
         )}
-
-        {/* Role Selector */}
         <p style={{ fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>I am a</p>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
           {(['patient', 'doctor', 'admin'] as Role[]).map(r => (
@@ -358,8 +329,6 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
             </button>
           ))}
         </div>
-
-        {/* Form Fields */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
           {isRegister && (
             <input className="input-field" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
@@ -370,17 +339,14 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
           <input className="input-field" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
           <input className="input-field" placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
         </div>
-
         {error && (
           <div style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', color: '#991B1B', fontSize: '13px' }}>
             ⚠️ {error}
           </div>
         )}
-
         <button onClick={isRegister ? handleRegister : handleLogin} disabled={loading} className="btn-navy" style={{ marginBottom: '16px' }}>
           {loading ? '⏳ Please wait...' : isRegister ? 'Create Account →' : 'Sign In →'}
         </button>
-
         <p style={{ textAlign: 'center', fontSize: '14px', color: '#94A3B8' }}>
           {isRegister ? 'Already have an account? ' : "Don't have an account? "}
           <span onClick={() => { setIsRegister(!isRegister); setError('') }} style={{ color: '#0D9488', cursor: 'pointer', fontWeight: '600' }}>
@@ -392,49 +358,35 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
   )
 }
 
+// =================== PATIENT HOME ===================
 function PatientHome({ user, cases, records, onNavigate }: {
-  user: any;
-  cases: any[];
-  records: any[];
-  onNavigate: (step: string) => void;
+  user: any; cases: any[]; records: any[]; onNavigate: (step: string) => void;
 }) {
   const pendingCases = cases.filter((c: any) => c.status !== 'reviewed').length
   const recentCase = cases[0]
   const recentRecord = records[0]
-
   const now = new Date()
   const hour = now.getHours()
   const greeting = hour < 12 ? '🌅 Good Morning' : hour < 17 ? '☀️ Good Afternoon' : '🌙 Good Evening'
 
   return (
     <div style={{ padding: '20px 0' }}>
-
-      {/* Welcome Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #0A1628 0%, #0F2241 50%, #0d9488 100%)',
-        borderRadius: '20px',
-        padding: '28px 24px',
-        marginBottom: '24px',
-        position: 'relative',
-        overflow: 'hidden',
+        borderRadius: '20px', padding: '28px 24px', marginBottom: '24px',
+        position: 'relative', overflow: 'hidden',
       }}>
         <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ position: 'absolute', bottom: -20, right: 40, width: 90, height: 90, borderRadius: '50%', background: 'rgba(13,148,136,0.3)' }} />
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', marginBottom: '6px' }}>{greeting}</p>
-        <h2 style={{ color: 'white', fontSize: '24px', margin: '0 0 6px', fontFamily: 'DM Serif Display, serif' }}>
-          {user.name} 👋
-        </h2>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: 0 }}>
-          Welcome to your health dashboard
-        </p>
+        <h2 style={{ color: 'white', fontSize: '24px', margin: '0 0 6px', fontFamily: 'DM Serif Display, serif' }}>{user.name} 👋</h2>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: 0 }}>Welcome to your health dashboard</p>
       </div>
-
-      {/* Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {[
-          { label: 'Total Cases', value: cases.length, icon: '📋', color: '#3B82F6', bg: '#EFF6FF' },
-          { label: 'Pending', value: pendingCases, icon: '⏳', color: '#F59E0B', bg: '#FEF3C7' },
-          { label: 'Records', value: records.length, icon: '🏥', color: '#10B981', bg: '#D1FAE5' },
+          { label: 'Total Cases', value: cases.length, icon: '📋', color: '#3B82F6' },
+          { label: 'Pending', value: pendingCases, icon: '⏳', color: '#F59E0B' },
+          { label: 'Records', value: records.length, icon: '🏥', color: '#10B981' },
         ].map((s, i) => (
           <div key={i} className="stat-card" style={{ textAlign: 'center', padding: '16px 10px' }}>
             <div style={{ fontSize: '26px', marginBottom: '6px' }}>{s.icon}</div>
@@ -443,8 +395,6 @@ function PatientHome({ user, cases, records, onNavigate }: {
           </div>
         ))}
       </div>
-
-      {/* Quick Actions */}
       <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0A1628', marginBottom: '12px' }}>Quick Actions</h3>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
         {[
@@ -454,13 +404,8 @@ function PatientHome({ user, cases, records, onNavigate }: {
           { icon: '💬', label: 'Chat Doctor', desc: 'Open cases', color: '#F59E0B', step: 'cases' },
         ].map((a, i) => (
           <button key={i} onClick={() => onNavigate(a.step)} style={{
-            background: 'white',
-            border: `2px solid ${a.color}20`,
-            borderRadius: '14px',
-            padding: '16px 14px',
-            cursor: 'pointer',
-            textAlign: 'left',
-            transition: 'all 0.2s',
+            background: 'white', border: `2px solid ${a.color}20`, borderRadius: '14px',
+            padding: '16px 14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
           }}
             onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
@@ -472,26 +417,15 @@ function PatientHome({ user, cases, records, onNavigate }: {
           </button>
         ))}
       </div>
-
-      {/* Recent Case */}
       {recentCase && (
         <>
           <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0A1628', marginBottom: '12px' }}>Recent Activity</h3>
-          <div style={{
-            background: 'white',
-            borderRadius: '14px',
-            padding: '16px',
-            marginBottom: '12px',
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-          }}>
+          <div style={{ background: 'white', borderRadius: '14px', padding: '16px', marginBottom: '12px', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ fontWeight: '600', color: '#3B82F6', fontSize: '14px' }}>📋 #{recentCase.case_number}</span>
-              <span style={{
-                padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
+              <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
                 background: recentCase.status === 'reviewed' ? '#D1FAE5' : '#FEF3C7',
-                color: recentCase.status === 'reviewed' ? '#065F46' : '#92400E'
-              }}>
+                color: recentCase.status === 'reviewed' ? '#065F46' : '#92400E' }}>
                 {recentCase.status === 'reviewed' ? '✅ Reviewed' : '⏳ Pending'}
               </span>
             </div>
@@ -511,21 +445,11 @@ function PatientHome({ user, cases, records, onNavigate }: {
           </div>
         </>
       )}
-
-      {/* Recent Record */}
       {recentRecord && (
-        <div style={{
-          background: 'white',
-          borderRadius: '14px',
-          padding: '16px',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-        }}>
+        <div style={{ background: 'white', borderRadius: '14px', padding: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontWeight: '600', color: '#8B5CF6', fontSize: '14px' }}>🏥 Latest Medical Record</span>
-            <span style={{ fontSize: '12px', color: '#94A3B8' }}>
-              {new Date(recentRecord.created_at).toLocaleDateString()}
-            </span>
+            <span style={{ fontSize: '12px', color: '#94A3B8' }}>{new Date(recentRecord.created_at).toLocaleDateString()}</span>
           </div>
           {recentRecord.diagnosis && (
             <p style={{ color: '#333', fontSize: '13px', margin: '0 0 8px' }}>🔍 {recentRecord.diagnosis}</p>
@@ -539,8 +463,6 @@ function PatientHome({ user, cases, records, onNavigate }: {
           }}>View All Records →</button>
         </div>
       )}
-
-      {/* Empty state — no cases yet */}
       {cases.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">🏥</div>
@@ -550,6 +472,115 @@ function PatientHome({ user, cases, records, onNavigate }: {
             marginTop: '16px', padding: '12px 24px', background: '#0d9488', color: 'white',
             border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px'
           }}>+ Submit First Case</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =================== DOCTOR HOME ===================
+function DoctorHome({ user, cases, onNavigate }: {
+  user: User
+  cases: any[]
+  onNavigate: (step: 'home' | 'cases') => void
+}) {
+  const now = new Date()
+  const hour = now.getHours()
+  const greeting = hour < 12 ? '🌅 Good Morning' : hour < 17 ? '☀️ Good Afternoon' : '🌙 Good Evening'
+  const pending = cases.filter(c => c.status !== 'reviewed').length
+  const reviewed = cases.filter(c => c.status === 'reviewed').length
+  const today = cases.filter(c => new Date(c.created_at).toDateString() === now.toDateString()).length
+  const recentCases = cases.slice(0, 3)
+
+  return (
+    <div style={{ padding: '20px 0' }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #0A1628 0%, #0F2241 55%, #0d9488 100%)',
+        borderRadius: '20px', padding: '28px 24px', marginBottom: '24px',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        <div style={{ position: 'absolute', bottom: -20, right: 40, width: 90, height: 90, borderRadius: '50%', background: 'rgba(13,148,136,0.3)' }} />
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', marginBottom: '6px' }}>{greeting}, Doctor</p>
+        <h2 style={{ color: 'white', fontSize: '24px', margin: '0 0 8px', fontFamily: 'DM Serif Display, serif' }}>
+          Dr. {user.name} 👨‍⚕️
+        </h2>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: 0 }}>
+          {pending > 0 ? `${pending} patient case${pending > 1 ? 's' : ''} waiting for your review` : 'All cases are up to date ✅'}
+        </p>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        {[
+          { label: 'Total Cases', value: cases.length, icon: '📋', color: '#3B82F6' },
+          { label: 'Pending', value: pending, icon: '⏳', color: '#F59E0B' },
+          { label: 'Reviewed', value: reviewed, icon: '✅', color: '#10B981' },
+        ].map((s, i) => (
+          <div key={i} className="stat-card" style={{ textAlign: 'center', padding: '16px 10px' }}>
+            <div style={{ fontSize: '24px', marginBottom: '6px' }}>{s.icon}</div>
+            <div style={{ fontSize: '26px', fontWeight: '700', color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px', fontWeight: '500' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      {today > 0 && (
+        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '14px', padding: '14px 18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '22px' }}>📅</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: '600', color: '#1D4ED8', margin: 0, fontSize: '14px' }}>{today} new case{today > 1 ? 's' : ''} today</p>
+            <p style={{ color: '#3B82F6', fontSize: '12px', margin: 0 }}>Submitted in the last 24 hours</p>
+          </div>
+          <button onClick={() => onNavigate('cases')} style={{ padding: '8px 16px', background: '#3B82F6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Review →</button>
+        </div>
+      )}
+      <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0A1628', marginBottom: '12px' }}>Quick Actions</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+        {[
+          { icon: '📋', label: 'All Cases', desc: `${cases.length} total`, color: '#0d9488' },
+          { icon: '⏳', label: 'Pending Review', desc: `${pending} waiting`, color: '#F59E0B' },
+        ].map((a, i) => (
+          <button key={i} onClick={() => onNavigate('cases')} style={{
+            background: 'white', border: `2px solid ${a.color}25`, borderRadius: '14px',
+            padding: '18px 14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+          >
+            <div style={{ fontSize: '26px', marginBottom: '8px' }}>{a.icon}</div>
+            <div style={{ fontWeight: '600', color: '#0A1628', fontSize: '14px' }}>{a.label}</div>
+            <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '3px' }}>{a.desc}</div>
+          </button>
+        ))}
+      </div>
+      {recentCases.length > 0 && (
+        <>
+          <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0A1628', marginBottom: '12px' }}>Recent Cases</h3>
+          {recentCases.map((c: any) => (
+            <div key={c.id} style={{ background: 'white', borderRadius: '14px', padding: '14px 16px', marginBottom: '10px', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{ fontWeight: '600', color: '#0d9488', fontSize: '14px' }}>#{c.case_number}</span>
+                  <span style={{ marginLeft: '10px', color: '#0A1628', fontSize: '14px', fontWeight: '500' }}>{c.profiles?.name}</span>
+                </div>
+                <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
+                  background: c.status === 'reviewed' ? '#D1FAE5' : '#FEF3C7',
+                  color: c.status === 'reviewed' ? '#065F46' : '#92400E' }}>
+                  {c.status === 'reviewed' ? '✅ Reviewed' : '⏳ Pending'}
+                </span>
+              </div>
+              <p style={{ color: '#94A3B8', fontSize: '12px', margin: '6px 0 0' }}>
+                {new Date(c.created_at).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            </div>
+          ))}
+          <button onClick={() => onNavigate('cases')} style={{ width: '100%', padding: '13px', background: 'transparent', color: '#0d9488', border: '2px dashed #0d948850', borderRadius: '12px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>View All Cases →</button>
+        </>
+      )}
+      {cases.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">🏥</div>
+          <p style={{ fontWeight: '600', color: '#0A1628', marginBottom: '8px' }}>No cases assigned yet</p>
+          <p>Patients will appear here once they select you as their doctor</p>
         </div>
       )}
     </div>
@@ -579,17 +610,14 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
     const { data } = await supabase.from('profiles').select('id, name, specialization').eq('role', 'doctor')
     setDoctors(data || [])
   }
-
   const fetchCases = async () => {
     const { data } = await supabase.from('cases').select('*, feedback(*)').eq('patient_id', user.id).order('created_at', { ascending: false })
     setCases(data || [])
   }
-
   const fetchRecords = async () => {
     const { data } = await supabase.from('medical_records').select('*, profiles!medical_records_doctor_id_fkey(name, specialization)').eq('patient_id', user.id).order('created_at', { ascending: false })
     setRecords(data || [])
   }
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const selected = Array.from(e.target.files)
@@ -597,9 +625,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
     if (valid.length !== selected.length) alert('Only PDF, JPG, PNG files under 5MB allowed!')
     setFiles(prev => [...prev, ...valid])
   }
-
   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index))
-
   const uploadFiles = async (caseId: string): Promise<string[]> => {
     const urls: string[] = []
     for (let i = 0; i < files.length; i++) {
@@ -613,7 +639,6 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
     setUploadProgress('')
     return urls
   }
-
   const handleSubmit = async () => {
     if (!answers[0].trim()) return
     setLoading(true)
@@ -632,7 +657,6 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
     }
     setLoading(false)
   }
-
   const getFileIcon = (name: string) => {
     if (name.endsWith('.pdf')) return '📄'
     if (name.match(/\.(jpg|jpeg|png)$/i)) return '🖼️'
@@ -642,9 +666,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
   return (
     <div style={{ minHeight: '100vh', background: 'var(--off-white)' }}>
       <nav className="nav-main">
-        <div className="nav-logo">
-          <span>🏥</span> MediConnect
-        </div>
+        <div className="nav-logo"><span>🏥</span> MediConnect</div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => setStep('home')} className={`nav-btn ${step === 'home' ? 'active' : ''}`}>🏠 Home</button>
           <button onClick={() => { setStep('cases'); fetchCases() }} className={`nav-btn ${step === 'cases' ? 'active' : ''}`}>📋 Cases</button>
@@ -657,6 +679,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
 
       <div style={{ maxWidth: '800px', margin: '20px auto', padding: '0 12px' }}>
         {step === 'home' && <PatientHome user={user} cases={cases} records={records} onNavigate={(s) => setStep(s as any)} />}
+
         {step === 'questions' && (
           <div style={{ background: 'white', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -670,7 +693,6 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                 ))}
               </div>
             </div>
-
             {submitted ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <p style={{ fontSize: '48px' }}>✅</p>
@@ -691,11 +713,8 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                       style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' as const }} />
                   </div>
                 ))}
-
                 <div style={{ marginBottom: '20px', padding: '16px', background: '#f8f9ff', borderRadius: '12px', border: '2px dashed #c7d7fc' }}>
-                  <p style={{ fontWeight: 'bold', color: '#333', marginBottom: '10px' }}>
-                    📎 Attach Medical Files <span style={{ fontWeight: 'normal', color: '#888', fontSize: '13px' }}>(Optional)</span>
-                  </p>
+                  <p style={{ fontWeight: 'bold', color: '#333', marginBottom: '10px' }}>📎 Attach Medical Files <span style={{ fontWeight: 'normal', color: '#888', fontSize: '13px' }}>(Optional)</span></p>
                   <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>PDF reports, X-rays, prescriptions • JPG/PNG/PDF • Max 5MB each</p>
                   {files.length > 0 && (
                     <div style={{ marginBottom: '12px' }}>
@@ -708,30 +727,19 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                     </div>
                   )}
                   <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple onChange={handleFileChange} style={{ display: 'none' }} />
-                  <button onClick={() => fileInputRef.current?.click()} style={{
-                    padding: '10px 20px', background: 'white', color: '#1a73e8',
-                    border: '2px solid #1a73e8', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px'
-                  }}>+ Add Files</button>
+                  <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 20px', background: 'white', color: '#1a73e8', border: '2px solid #1a73e8', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>+ Add Files</button>
                   {uploadProgress && <p style={{ color: '#1a73e8', fontSize: '13px', marginTop: '8px' }}>⏳ {uploadProgress}</p>}
                 </div>
-
-                {/* Doctor Selection */}
                 <div style={{ marginBottom: '20px', padding: '16px', background: '#f0fdf9', borderRadius: '12px', border: '1px solid #d1fae5' }}>
                   <p style={{ fontWeight: 'bold', color: '#0d9488', marginBottom: '10px', fontSize: '14px' }}>👨‍⚕️ Select Your Doctor</p>
-                  <select
-                    value={selectedDoctorId}
-                    onChange={e => setSelectedDoctorId(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1fae5', fontSize: '14px', background: 'white', color: '#1e293b' }}
-                  >
+                  <select value={selectedDoctorId} onChange={e => setSelectedDoctorId(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1fae5', fontSize: '14px', background: 'white', color: '#1e293b' }}>
                     <option value="">-- Select a Doctor --</option>
                     {doctors.map((d: any) => (
-                      <option key={d.id} value={d.id}>
-                        👨‍⚕️ Dr. {d.name} {d.specialization ? `— ${d.specialization}` : ''}
-                      </option>
+                      <option key={d.id} value={d.id}>👨‍⚕️ Dr. {d.name} {d.specialization ? `— ${d.specialization}` : ''}</option>
                     ))}
                   </select>
                 </div>
-
                 <button onClick={handleSubmit} disabled={loading} style={{
                   width: '100%', padding: '14px', background: loading ? '#ccc' : '#1a73e8', color: 'white',
                   border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer', fontWeight: 'bold'
@@ -766,14 +774,11 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                 <button onClick={() => setChatCase(chatCase?.id === c.id ? null : c)} style={{
                   marginTop: '10px', padding: '8px 16px', background: '#1a73e8', color: 'white',
                   border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold'
-                }}>
-                  💬 {chatCase?.id === c.id ? 'Close Chat' : 'Chat with Doctor'}
-                </button>
+                }}>💬 {chatCase?.id === c.id ? 'Close Chat' : 'Chat with Doctor'}</button>
               </div>
             ))}
           </div>
         )}
-      </div>
 
         {step === 'records' && (
           <div>
@@ -807,13 +812,12 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                     <p style={{ margin: 0, color: '#333' }}>{r.prescription}</p>
                   </div>
                 )}
-                {r.notes && (
-                  <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>📋 {r.notes}</p>
-                )}
+                {r.notes && <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>📋 {r.notes}</p>}
               </div>
             ))}
           </div>
         )}
+      </div>
 
       {chatCase && <ChatBox caseId={chatCase.id} caseNumber={chatCase.case_number} user={user} onClose={() => setChatCase(null)} />}
     </div>
@@ -829,6 +833,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
   const [sent, setSent] = useState(false)
   const [fileUrls, setFileUrls] = useState<{ name: string; url: string }[]>([])
   const [chatCase, setChatCase] = useState<any | null>(null)
+  const [step, setStep] = useState<'home' | 'cases'>('home')
 
   useEffect(() => { fetchCases() }, [])
 
@@ -872,7 +877,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
                 </div>
                 <p style="color: #555;">Login to MediConnect to view full details and chat with your doctor.</p>
                 <div style="text-align: center; margin-top: 24px;">
-                  <a href="https://mediconnect-git-main-na4092881-bytes-projects.vercel.app" 
+                  <a href="https://mediconnect-git-main-na4092881-bytes-projects.vercel.app"
                      style="background: #1a73e8; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold;">
                     View on MediConnect
                   </a>
@@ -897,15 +902,10 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
       user_id: selected.patient_id, title: 'Doctor replied to your case',
       message: `Case #${selected.case_number}: ${reply.substring(0, 50)}...`
     })
-    // Send email notification
     await sendEmailNotification(selected.profiles?.email, selected.profiles?.name, selected.case_number, reply)
-    // Auto-save as medical record
     await supabase.from('medical_records').insert({
-      patient_id: selected.patient_id,
-      doctor_id: user.id,
-      case_id: selected.id,
-      diagnosis: selected.answers?.[0]?.answer || '',
-      prescription: reply,
+      patient_id: selected.patient_id, doctor_id: user.id, case_id: selected.id,
+      diagnosis: selected.answers?.[0]?.answer || '', prescription: reply,
       notes: `Case #${selected.case_number}`
     })
     setSent(true); fetchCases(); setLoading(false)
@@ -918,7 +918,9 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
           <span>🏥</span> MediConnect
           <span style={{ fontSize: '12px', background: 'rgba(13,148,136,0.3)', color: '#5EEAD4', padding: '3px 10px', borderRadius: '20px', marginLeft: '8px', fontFamily: "'DM Sans', sans-serif", fontWeight: '500' }}>Doctor</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button onClick={() => setStep('home')} className={`nav-btn ${step === 'home' ? 'active' : ''}`}>🏠 Home</button>
+          <button onClick={() => { setStep('cases'); fetchCases() }} className={`nav-btn ${step === 'cases' ? 'active' : ''}`}>📋 Cases</button>
           <NotificationBell userId={user.id} />
           <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>👨‍⚕️ {user.name}</span>
           <button onClick={onLogout} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Logout</button>
@@ -926,84 +928,89 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
       </nav>
 
       <div style={{ maxWidth: '900px', margin: '20px auto', padding: '0 12px' }}>
-        <div className='stats-grid' style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-          {[
-            { label: 'Total Cases', value: cases.length, color: '#1a73e8' },
-            { label: 'Pending', value: cases.filter(c => c.status === 'pending').length, color: '#f59e0b' },
-            { label: 'Reviewed', value: cases.filter(c => c.status === 'reviewed').length, color: '#10b981' }
-          ].map(s => (
-            <div key={s.label} style={{ background: 'white', padding: '20px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: s.color, margin: 0 }}>{s.value}</p>
-              <p style={{ color: '#666', margin: 0 }}>{s.label}</p>
-            </div>
-          ))}
-        </div>
 
-        <h3 style={{ marginBottom: '16px' }}>Patient Cases</h3>
-        {cases.length === 0 && <p style={{ color: '#666' }}>No cases yet!</p>}
-        {cases.map((c: any) => (
-          <div key={c.id} style={{ background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontWeight: 'bold', color: '#0d9488' }}>#{c.case_number}</span>
-                <span style={{ margin: '0 8px', color: '#ddd' }}>|</span>
-                <span style={{ fontWeight: 'bold' }}>{c.profiles?.name}</span>
-                <span style={{ color: '#666', fontSize: '13px', marginLeft: '8px' }}>{c.profiles?.email}</span>
-                {c.file_paths && c.file_paths.length > 0 && (
-                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#1a73e8', background: '#e8f0fe', padding: '2px 8px', borderRadius: '10px' }}>📎 {c.file_paths.length} file(s)</span>
-                )}
-              </div>
-              <div className='case-actions' style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
-                  background: c.status === 'reviewed' ? '#e6f4ea' : '#fef3cd',
-                  color: c.status === 'reviewed' ? '#137333' : '#856404' }}>
-                  {c.status === 'reviewed' ? '✅ Reviewed' : '⏳ Pending'}
-                </span>
-                <button onClick={() => {
-                  if (selected?.id === c.id) { setSelected(null); setFileUrls([]) }
-                  else { setSelected(c); setSent(false); setReply(''); if (c.file_paths?.length > 0) loadFileUrls(c.file_paths); else setFileUrls([]) }
-                }} style={{ padding: '8px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                  View & Reply
-                </button>
-                <button onClick={() => setChatCase(chatCase?.id === c.id ? null : c)} style={{
-                  padding: '8px 16px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'
-                }}>💬 Chat</button>
-              </div>
-            </div>
+        {step === 'home' && <DoctorHome user={user} cases={cases} onNavigate={setStep} />}
 
-            {selected?.id === c.id && (
-              <div style={{ marginTop: '16px', padding: '16px', background: '#f0fdf9', borderRadius: '8px' }}>
-                <h4 style={{ color: '#0d9488', marginBottom: '12px' }}>Patient's Answers:</h4>
-                {c.answers?.map((a: any, i: number) => (
-                  <div key={i} style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                    <p style={{ fontWeight: 'bold', margin: '0 0 4px', fontSize: '13px', color: '#555' }}>{a.question}</p>
-                    <p style={{ margin: 0, color: '#333' }}>{a.answer || 'Not answered'}</p>
+        {step === 'cases' && (
+          <div>
+            <div className='stats-grid' style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              {[
+                { label: 'Total Cases', value: cases.length, color: '#1a73e8' },
+                { label: 'Pending', value: cases.filter(c => c.status === 'pending').length, color: '#f59e0b' },
+                { label: 'Reviewed', value: cases.filter(c => c.status === 'reviewed').length, color: '#10b981' }
+              ].map(s => (
+                <div key={s.label} style={{ background: 'white', padding: '20px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                  <p style={{ fontSize: '32px', fontWeight: 'bold', color: s.color, margin: 0 }}>{s.value}</p>
+                  <p style={{ color: '#666', margin: 0 }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+            <h3 style={{ marginBottom: '16px' }}>Patient Cases</h3>
+            {cases.length === 0 && <p style={{ color: '#666' }}>No cases yet!</p>}
+            {cases.map((c: any) => (
+              <div key={c.id} style={{ background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontWeight: 'bold', color: '#0d9488' }}>#{c.case_number}</span>
+                    <span style={{ margin: '0 8px', color: '#ddd' }}>|</span>
+                    <span style={{ fontWeight: 'bold' }}>{c.profiles?.name}</span>
+                    <span style={{ color: '#666', fontSize: '13px', marginLeft: '8px' }}>{c.profiles?.email}</span>
+                    {c.file_paths && c.file_paths.length > 0 && (
+                      <span style={{ marginLeft: '8px', fontSize: '12px', color: '#1a73e8', background: '#e8f0fe', padding: '2px 8px', borderRadius: '10px' }}>📎 {c.file_paths.length} file(s)</span>
+                    )}
                   </div>
-                ))}
-                {fileUrls.length > 0 && (
-                  <div style={{ marginTop: '12px', padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #d1fae5' }}>
-                    <p style={{ fontWeight: 'bold', color: '#0d9488', marginBottom: '10px' }}>📎 Attached Files:</p>
-                    {fileUrls.map((f, i) => (
-                      <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '10px', marginBottom: '8px',
-                        padding: '8px 14px', background: '#e0f2f1', color: '#0d9488', borderRadius: '8px',
-                        textDecoration: 'none', fontSize: '14px', fontWeight: 'bold'
-                      }}>{f.name.endsWith('.pdf') ? '📄' : '🖼️'} {f.name}</a>
+                  <div className='case-actions' style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
+                      background: c.status === 'reviewed' ? '#e6f4ea' : '#fef3cd',
+                      color: c.status === 'reviewed' ? '#137333' : '#856404' }}>
+                      {c.status === 'reviewed' ? '✅ Reviewed' : '⏳ Pending'}
+                    </span>
+                    <button onClick={() => {
+                      if (selected?.id === c.id) { setSelected(null); setFileUrls([]) }
+                      else { setSelected(c); setSent(false); setReply(''); if (c.file_paths?.length > 0) loadFileUrls(c.file_paths); else setFileUrls([]) }
+                    }} style={{ padding: '8px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                      View & Reply
+                    </button>
+                    <button onClick={() => setChatCase(chatCase?.id === c.id ? null : c)} style={{
+                      padding: '8px 16px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'
+                    }}>💬 Chat</button>
+                  </div>
+                </div>
+                {selected?.id === c.id && (
+                  <div style={{ marginTop: '16px', padding: '16px', background: '#f0fdf9', borderRadius: '8px' }}>
+                    <h4 style={{ color: '#0d9488', marginBottom: '12px' }}>Patient's Answers:</h4>
+                    {c.answers?.map((a: any, i: number) => (
+                      <div key={i} style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                        <p style={{ fontWeight: 'bold', margin: '0 0 4px', fontSize: '13px', color: '#555' }}>{a.question}</p>
+                        <p style={{ margin: 0, color: '#333' }}>{a.answer || 'Not answered'}</p>
+                      </div>
                     ))}
+                    {fileUrls.length > 0 && (
+                      <div style={{ marginTop: '12px', padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #d1fae5' }}>
+                        <p style={{ fontWeight: 'bold', color: '#0d9488', marginBottom: '10px' }}>📎 Attached Files:</p>
+                        {fileUrls.map((f, i) => (
+                          <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '10px', marginBottom: '8px',
+                            padding: '8px 14px', background: '#e0f2f1', color: '#0d9488', borderRadius: '8px',
+                            textDecoration: 'none', fontSize: '14px', fontWeight: 'bold'
+                          }}>{f.name.endsWith('.pdf') ? '📄' : '🖼️'} {f.name}</a>
+                        ))}
+                      </div>
+                    )}
+                    <textarea placeholder="Write prescription or reply..." value={reply} onChange={e => setReply(e.target.value)}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', height: '80px', boxSizing: 'border-box' as const, marginTop: '12px' }} />
+                    <button onClick={handleReply} disabled={loading} style={{
+                      marginTop: '8px', padding: '10px 20px', background: loading ? '#ccc' : '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer'
+                    }}>{loading ? 'Sending...' : 'Send Reply ✉️'}</button>
+                    {sent && <span style={{ marginLeft: '12px', color: 'green', fontWeight: 'bold' }}>✅ Reply sent!</span>}
                   </div>
                 )}
-                <textarea placeholder="Write prescription or reply..." value={reply} onChange={e => setReply(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', height: '80px', boxSizing: 'border-box' as const, marginTop: '12px' }} />
-                <button onClick={handleReply} disabled={loading} style={{
-                  marginTop: '8px', padding: '10px 20px', background: loading ? '#ccc' : '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer'
-                }}>{loading ? 'Sending...' : 'Send Reply ✉️'}</button>
-                {sent && <span style={{ marginLeft: '12px', color: 'green', fontWeight: 'bold' }}>✅ Reply sent!</span>}
               </div>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
+        )}
 
+      </div>
       {chatCase && <ChatBox caseId={chatCase.id} caseNumber={chatCase.case_number} user={user} onClose={() => setChatCase(null)} />}
     </div>
   )
@@ -1024,32 +1031,25 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
     const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
     setUsers(data || [])
   }
-
   const fetchCases = async () => {
     const { data } = await supabase.from('cases').select('*, profiles!cases_patient_id_fkey(name, email), feedback(*)').order('created_at', { ascending: false })
     setCases(data || [])
   }
-
   const toggleBlock = async (u: any) => {
     await supabase.from('profiles').update({ blocked: !u.blocked }).eq('id', u.id)
     fetchUsers()
   }
-
   const filteredUsers = users.filter(u => {
     const matchSearch = u.name?.toLowerCase().includes(searchUser.toLowerCase()) || u.email?.toLowerCase().includes(searchUser.toLowerCase())
     const matchRole = filterRole === 'all' || u.role === filterRole
     return matchSearch && matchRole
   })
-
-  // Daily cases for last 7 days
   const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
+    const d = new Date(); d.setDate(d.getDate() - (6 - i))
     return d.toLocaleDateString('en', { weekday: 'short' })
   })
   const casesPerDay = last7Days.map((_day, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
+    const d = new Date(); d.setDate(d.getDate() - (6 - i))
     return cases.filter(c => new Date(c.created_at).toDateString() === d.toDateString()).length
   })
   const maxCases = Math.max(...casesPerDay, 1)
@@ -1062,12 +1062,7 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
           <span style={{ fontSize: '12px', background: 'rgba(124,58,237,0.3)', color: '#C4B5FD', padding: '3px 10px', borderRadius: '20px', marginLeft: '8px', fontFamily: "'DM Sans', sans-serif", fontWeight: '500' }}>Admin</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Tab Buttons */}
-          {[
-            { key: 'overview', label: '📊 Overview' },
-            { key: 'users', label: '👥 Users' },
-            { key: 'cases', label: '📋 Cases' },
-          ].map(t => (
+          {[{ key: 'overview', label: '📊 Overview' }, { key: 'users', label: '👥 Users' }, { key: 'cases', label: '📋 Cases' }].map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key as any)} style={{
               padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px',
               background: activeTab === t.key ? 'white' : 'rgba(255,255,255,0.2)',
@@ -1078,13 +1073,9 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
           <button onClick={onLogout} style={{ background: 'white', color: '#7c3aed', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>Logout</button>
         </div>
       </nav>
-
       <div style={{ maxWidth: '1100px', margin: '24px auto', padding: '0 16px' }}>
-
-        {/* ── OVERVIEW TAB ── */}
         {activeTab === 'overview' && (
           <div>
-            {/* Stats */}
             <div className='stats-grid' style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px' }}>
               {[
                 { label: 'Total Users', value: users.length, color: '#1a73e8', icon: '👥' },
@@ -1100,26 +1091,18 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
                 </div>
               ))}
             </div>
-
-            {/* Cases Chart */}
             <div style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', marginBottom: '24px' }}>
               <h3 style={{ color: '#7c3aed', marginBottom: '20px' }}>📈 Cases - Last 7 Days</h3>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '150px' }}>
                 {casesPerDay.map((count, i) => (
                   <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#7c3aed' }}>{count}</span>
-                    <div style={{
-                      width: '100%', borderRadius: '6px 6px 0 0',
-                      background: count > 0 ? '#7c3aed' : '#e9d5ff',
-                      height: `${Math.max((count / maxCases) * 120, count > 0 ? 8 : 4)}px`
-                    }} />
+                    <div style={{ width: '100%', borderRadius: '6px 6px 0 0', background: count > 0 ? '#7c3aed' : '#e9d5ff', height: `${Math.max((count / maxCases) * 120, count > 0 ? 8 : 4)}px` }} />
                     <span style={{ fontSize: '11px', color: '#666' }}>{last7Days[i]}</span>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Quick Stats Row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
                 <h4 style={{ color: '#7c3aed', marginBottom: '12px' }}>🔴 Pending Cases</h4>
@@ -1144,18 +1127,11 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
             </div>
           </div>
         )}
-
-        {/* ── USERS TAB ── */}
         {activeTab === 'users' && (
           <div>
-            {/* Search & Filter */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-              <input
-                placeholder="🔍 Search by name or email..."
-                value={searchUser}
-                onChange={e => setSearchUser(e.target.value)}
-                style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
-              />
+              <input placeholder="🔍 Search by name or email..." value={searchUser} onChange={e => setSearchUser(e.target.value)}
+                style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }} />
               {['all', 'doctor', 'patient', 'admin'].map(r => (
                 <button key={r} onClick={() => setFilterRole(r)} style={{
                   padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px',
@@ -1163,7 +1139,6 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
                 }}>{r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}</button>
               ))}
             </div>
-
             <div style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
               <h3 style={{ marginBottom: '16px', color: '#7c3aed' }}>👥 User Management ({filteredUsers.length})</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1205,22 +1180,15 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
             </div>
           </div>
         )}
-
-        {/* ── CASES TAB ── */}
         {activeTab === 'cases' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0 }}>📋 All Cases ({cases.length})</h3>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <span style={{ padding: '6px 14px', borderRadius: '20px', background: '#fef3cd', color: '#856404', fontSize: '13px', fontWeight: 'bold' }}>
-                  ⏳ Pending: {cases.filter(c => c.status === 'pending').length}
-                </span>
-                <span style={{ padding: '6px 14px', borderRadius: '20px', background: '#e6f4ea', color: '#137333', fontSize: '13px', fontWeight: 'bold' }}>
-                  ✅ Reviewed: {cases.filter(c => c.status === 'reviewed').length}
-                </span>
+                <span style={{ padding: '6px 14px', borderRadius: '20px', background: '#fef3cd', color: '#856404', fontSize: '13px', fontWeight: 'bold' }}>⏳ Pending: {cases.filter(c => c.status === 'pending').length}</span>
+                <span style={{ padding: '6px 14px', borderRadius: '20px', background: '#e6f4ea', color: '#137333', fontSize: '13px', fontWeight: 'bold' }}>✅ Reviewed: {cases.filter(c => c.status === 'reviewed').length}</span>
               </div>
             </div>
-
             {cases.map((c: any) => (
               <div key={c.id} style={{ background: 'white', padding: '16px', borderRadius: '12px', marginBottom: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1242,7 +1210,6 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
                     }}>👁️ View</button>
                   </div>
                 </div>
-
                 {selectedCase?.id === c.id && (
                   <div style={{ marginTop: '12px', padding: '12px', background: '#faf5ff', borderRadius: '8px' }}>
                     <h4 style={{ color: '#7c3aed', marginBottom: '10px' }}>Patient's Answers:</h4>
@@ -1273,39 +1240,21 @@ function AdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }
 // =================== MAIN ===================
 export default function App() {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)  // ← naya
+  const [loading, setLoading] = useState(true)
 
-  // ── Auto login: page reload pe bhi logged in rahe ──────
   useEffect(() => {
-    // Check karo kya pehle se session hai
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
         if (profile && !profile.blocked) {
-          setUser({
-            id: session.user.id,
-            name: profile.name,
-            email: profile.email,
-            role: profile.role,
-          })
+          setUser({ id: session.user.id, name: profile.name, email: profile.email, role: profile.role })
         }
       }
       setLoading(false)
     })
-
-    // Auth state change listen karo (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, _session) => {
-        if (event === 'SIGNED_OUT') {
-          setUser(null)
-        }
-      }
-    )
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, _session) => {
+      if (event === 'SIGNED_OUT') { setUser(null) }
+    })
     return () => subscription.unsubscribe()
   }, [])
 
@@ -1314,29 +1263,10 @@ export default function App() {
     setUser(null)
   }
 
-  // Loading screen
   if (loading) return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0A1628, #0F2241)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'column',
-      gap: '16px',
-    }}>
-      <div style={{
-        width: '60px', height: '60px',
-        background: 'linear-gradient(135deg, #0d9488, #14B8A6)',
-        borderRadius: '16px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '28px',
-        boxShadow: '0 8px 24px rgba(13,148,136,0.4)',
-        animation: 'pulse 1.5s ease-in-out infinite',
-      }}>🏥</div>
-      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', fontFamily: 'DM Sans, sans-serif' }}>
-        Loading MediConnect...
-      </p>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0A1628, #0F2241)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ width: '60px', height: '60px', background: 'linear-gradient(135deg, #0d9488, #14B8A6)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', boxShadow: '0 8px 24px rgba(13,148,136,0.4)', animation: 'pulse 1.5s ease-in-out infinite' }}>🏥</div>
+      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', fontFamily: 'DM Sans, sans-serif' }}>Loading MediConnect...</p>
     </div>
   )
 
