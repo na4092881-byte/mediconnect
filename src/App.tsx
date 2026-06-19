@@ -731,7 +731,24 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                   <p style={{ color: '#94A3B8', fontSize: '13px', fontStyle: 'italic' }}>No doctors available yet.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-                    {doctors.map((d: any) => (
+                    {doctors.filter((d: any) => {
+                      if (!selectedSpecialty) return true
+                      const sp = selectedSpecialty.toLowerCase()
+                      const spec = (d.specialization || '').toLowerCase()
+                      if (sp === 'general') return spec.includes('general') || spec === ''|| spec.includes('physician')
+                      if (sp === 'cardiology') return spec.includes('cardio') || spec.includes('heart')
+                      if (sp === 'neurology') return spec.includes('neuro') || spec.includes('brain')
+                      if (sp === 'orthopedics') return spec.includes('ortho') || spec.includes('bone')
+                      if (sp === 'dermatology') return spec.includes('derm') || spec.includes('skin')
+                      if (sp === 'pediatrics') return spec.includes('pedia') || spec.includes('child')
+                      if (sp === 'gynecology') return spec.includes('gynec') || spec.includes('women')
+                      if (sp === 'ophthalmology') return spec.includes('ophthal') || spec.includes('eye')
+                      if (sp === 'ent') return spec.includes('ent') || spec.includes('ear') || spec.includes('nose')
+                      if (sp === 'psychiatry') return spec.includes('psych') || spec.includes('mental')
+                      if (sp === 'diabetes') return spec.includes('diabet') || spec.includes('thyroid')
+                      if (sp === 'pulmonology') return spec.includes('pulmo') || spec.includes('lung')
+                      return true
+                    }).map((d: any) => (
                       <button key={d.id} onClick={() => { setSelectedDoctorId(d.id); setStep('questions') }} style={{
                         background: 'white', border: '1.5px solid #E2E8F0',
                         borderRadius: '12px', padding: '14px 16px', cursor: 'pointer',
