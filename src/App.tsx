@@ -402,6 +402,7 @@ function PatientHome({ user, cases, records, onNavigate }: {
           { icon: '📋', label: 'My Cases', desc: `${cases.length} total`, color: '#3B82F6', step: 'cases' },
           { icon: '🏥', label: 'Records', desc: `${records.length} records`, color: '#8B5CF6', step: 'records' },
           { icon: '💬', label: 'Chat Doctor', desc: 'Open cases', color: '#F59E0B', step: 'cases' },
+          { icon: '🏥', label: 'Find by Specialty', desc: 'Specialty wise doctor', color: '#0d9488', step: 'specialty' },
         ].map((a, i) => (
           <button key={i} onClick={() => onNavigate(a.step)} style={{
             background: 'white', border: `2px solid ${a.color}20`, borderRadius: '14px',
@@ -591,7 +592,7 @@ function DoctorHome({ user, cases, onNavigate }: {
 function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [lang, setLang] = useState<Lang>('en')
   const [answers, setAnswers] = useState<string[]>(Array(QUESTIONS.length).fill(''))
-  const [step, setStep] = useState<'home' | 'questions' | 'cases' | 'records'>('home')
+ const [step, setStep] = useState<'home' | 'questions' | 'cases' | 'records' | 'specialty'>('home')
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [cases, setCases] = useState<any[]>([])
@@ -600,6 +601,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
   const [records, setRecords] = useState<any[]>([])
   const [doctors, setDoctors] = useState<any[]>([])
   const [selectedDoctorId, setSelectedDoctorId] = useState('')
+  const [selectedSpecialty, setSelectedSpecialty] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [uploadProgress, setUploadProgress] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -679,6 +681,81 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
 
       <div style={{ maxWidth: '800px', margin: '20px auto', padding: '0 12px' }}>
         {step === 'home' && <PatientHome user={user} cases={cases} records={records} onNavigate={(s) => setStep(s as any)} />}
+          {step === 'specialty' && (
+          <div style={{ background: 'white', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+              <button onClick={() => setStep('home')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>←</button>
+              <h3 style={{ color: '#0A1628', margin: 0 }}>🏥 Select Specialty</h3>
+            </div>
+            {!selectedSpecialty ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                {[
+                  { id: 'general',       name: 'General Physician', icon: '🩺', desc: 'Fever, cold, checkup' },
+                  { id: 'cardiology',    name: 'Cardiology',        icon: '❤️', desc: 'Heart & BP' },
+                  { id: 'neurology',     name: 'Neurology',         icon: '🧠', desc: 'Brain & nerves' },
+                  { id: 'orthopedics',   name: 'Orthopedics',       icon: '🦴', desc: 'Bones & joints' },
+                  { id: 'dermatology',   name: 'Dermatology',       icon: '🧴', desc: 'Skin & hair' },
+                  { id: 'pediatrics',    name: 'Pediatrics',        icon: '👶', desc: 'Children 0-18' },
+                  { id: 'gynecology',    name: 'Gynecology',        icon: '🌸', desc: "Women's health" },
+                  { id: 'ophthalmology', name: 'Ophthalmology',     icon: '👁️', desc: 'Eyes & vision' },
+                  { id: 'ent',           name: 'ENT',               icon: '👂', desc: 'Ear, nose & throat' },
+                  { id: 'psychiatry',    name: 'Psychiatry',        icon: '🧘', desc: 'Mental health' },
+                  { id: 'diabetes',      name: 'Diabetology',       icon: '💉', desc: 'Diabetes & thyroid' },
+                  { id: 'pulmonology',   name: 'Pulmonology',       icon: '🫁', desc: 'Lungs & breathing' },
+                ].map(sp => (
+                  <button key={sp.id} onClick={() => setSelectedSpecialty(sp.id)} style={{
+                    background: 'white', border: '1.5px solid #E2E8F0',
+                    borderRadius: '14px', padding: '16px 10px', cursor: 'pointer',
+                    textAlign: 'center', transition: 'all 0.2s',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.border = '2px solid #0d9488'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.border = '1.5px solid #E2E8F0'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  >
+                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>{sp.icon}</div>
+                    <div style={{ fontWeight: '600', fontSize: '12px', color: '#0A1628', lineHeight: 1.3, marginBottom: '4px' }}>{sp.name}</div>
+                    <div style={{ fontSize: '10px', color: '#94A3B8' }}>{sp.desc}</div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                  <button onClick={() => setSelectedSpecialty('')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>←</button>
+                  <span style={{ background: '#E1F5EE', color: '#0d9488', padding: '4px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>
+                    Specialty selected ✓
+                  </span>
+                </div>
+                <p style={{ fontWeight: '600', color: '#0A1628', marginBottom: '12px', fontSize: '15px' }}>👨‍⚕️ Available Doctors</p>
+                {doctors.length === 0 ? (
+                  <p style={{ color: '#94A3B8', fontSize: '13px', fontStyle: 'italic' }}>No doctors available yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                    {doctors.map((d: any) => (
+                      <button key={d.id} onClick={() => { setSelectedDoctorId(d.id); setStep('questions') }} style={{
+                        background: 'white', border: '1.5px solid #E2E8F0',
+                        borderRadius: '12px', padding: '14px 16px', cursor: 'pointer',
+                        textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.2s',
+                      }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = '#0d9488')}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = '#E2E8F0')}
+                      >
+                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg, #0A1628, #0d9488)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '16px', flexShrink: 0 }}>
+                          {d.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontWeight: '600', color: '#0A1628', margin: 0, fontSize: '15px' }}>Dr. {d.name}</p>
+                          <p style={{ color: '#94A3B8', fontSize: '12px', margin: '2px 0 0' }}>{d.specialization || 'General Physician'}</p>
+                        </div>
+                        <span style={{ color: '#0d9488', fontSize: '13px', fontWeight: '600' }}>Select →</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {step === 'questions' && (
           <div style={{ background: 'white', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
