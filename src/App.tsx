@@ -29,6 +29,105 @@ const QUESTIONS = [
   { en: "Is there any history of heart attack?", hi: "क्या हार्ट अटैक का इतिहास है?", hinglish: "Kya heart attack ki history hai?" }
 ]
 
+const SPECIALTY_QUESTIONS: Record<string, { en: string; hi: string; hinglish: string }[]> = {
+  general: [
+    { en: "What is your main problem today?", hi: "आज आपकी मुख्य समस्या क्या है?", hinglish: "Aaj aapki main problem kya hai?" },
+    { en: "How long have you had this problem?", hi: "यह समस्या कब से है?", hinglish: "Yeh problem kab se hai?" },
+    { en: "Do you have fever?", hi: "क्या आपको बुखार है?", hinglish: "Kya aapko bukhar hai?" },
+    { en: "Do you have cough or cold?", hi: "क्या खांसी या जुकाम है?", hinglish: "Kya khansi ya jukam hai?" },
+    { en: "Do you have any allergies?", hi: "क्या कोई एलर्जी है?", hinglish: "Kya koi allergy hai?" },
+    { en: "Are you on any medication?", hi: "क्या कोई दवा चल रही है?", hinglish: "Kya koi medicine chal rahi hai?" },
+  ],
+  cardiology: [
+    { en: "Do you have chest pain?", hi: "क्या सीने में दर्द है?", hinglish: "Kya seene mein dard hai?" },
+    { en: "Do you feel breathless on walking?", hi: "क्या चलने पर सांस फूलती है?", hinglish: "Kya chalne par saans phoolti hai?" },
+    { en: "Do you have high BP?", hi: "क्या हाई ब्लड प्रेशर है?", hinglish: "Kya high BP hai?" },
+    { en: "Do you have palpitations?", hi: "क्या दिल की धड़कन तेज होती है?", hinglish: "Kya dil ki dhadkan tez hoti hai?" },
+    { en: "Any history of heart attack?", hi: "क्या पहले हार्ट अटैक हुआ है?", hinglish: "Kya pehle heart attack hua hai?" },
+    { en: "Do you smoke or drink?", hi: "क्या धूम्रपान या शराब लेते हैं?", hinglish: "Kya smoking ya alcohol lete ho?" },
+  ],
+  neurology: [
+    { en: "Do you have headache?", hi: "क्या सिरदर्द है?", hinglish: "Kya sir dard hai?" },
+    { en: "Do you have fits or seizures?", hi: "क्या दौरे पड़ते हैं?", hinglish: "Kya daure padte hain?" },
+    { en: "Do you feel dizzy or faint?", hi: "क्या चक्कर आते हैं?", hinglish: "Kya chakkar aate hain?" },
+    { en: "Do you have memory loss?", hi: "क्या भूलने की समस्या है?", hinglish: "Kya bhoolne ki problem hai?" },
+    { en: "Do you have weakness in hands/legs?", hi: "क्या हाथ पैर में कमजोरी है?", hinglish: "Kya haath pair mein kamzori hai?" },
+    { en: "Do you have sleep problems?", hi: "क्या नींद की समस्या है?", hinglish: "Kya neend ki problem hai?" },
+  ],
+  orthopedics: [
+    { en: "Which joint or bone is paining?", hi: "कौन सा जोड़ या हड्डी में दर्द है?", hinglish: "Kaunsa joint ya haddi mein dard hai?" },
+    { en: "How long have you had this pain?", hi: "यह दर्द कब से है?", hinglish: "Yeh dard kab se hai?" },
+    { en: "Did you have any injury?", hi: "क्या कोई चोट लगी थी?", hinglish: "Kya koi chot lagi thi?" },
+    { en: "Is there swelling in the joint?", hi: "क्या जोड़ में सूजन है?", hinglish: "Kya joint mein sujan hai?" },
+    { en: "Can you walk properly?", hi: "क्या आप ठीक से चल सकते हैं?", hinglish: "Kya aap theek se chal sakte ho?" },
+    { en: "Do you have back pain?", hi: "क्या पीठ दर्द है?", hinglish: "Kya peeth dard hai?" },
+  ],
+  dermatology: [
+    { en: "What skin problem do you have?", hi: "आपको कौन सी त्वचा की समस्या है?", hinglish: "Aapko kaunsi skin ki problem hai?" },
+    { en: "How long have you had it?", hi: "यह समस्या कब से है?", hinglish: "Yeh problem kab se hai?" },
+    { en: "Is there itching or rash?", hi: "क्या खुजली या रैश है?", hinglish: "Kya khujli ya rash hai?" },
+    { en: "Have you used any cream?", hi: "क्या कोई क्रीम लगाई है?", hinglish: "Kya koi cream lagayi hai?" },
+    { en: "Do you have hair fall?", hi: "क्या बाल झड़ रहे हैं?", hinglish: "Kya baal jhar rahe hain?" },
+    { en: "Any allergies to food or medicine?", hi: "क्या खाने या दवा से एलर्जी है?", hinglish: "Kya khane ya medicine se allergy hai?" },
+  ],
+  pediatrics: [
+    { en: "What is the child's age?", hi: "बच्चे की उम्र क्या है?", hinglish: "Bachche ki umar kya hai?" },
+    { en: "What is the child's weight?", hi: "बच्चे का वजन कितना है?", hinglish: "Bachche ka wajan kitna hai?" },
+    { en: "Does the child have fever?", hi: "क्या बच्चे को बुखार है?", hinglish: "Kya bachche ko bukhar hai?" },
+    { en: "Is the child eating properly?", hi: "क्या बच्चा ठीक से खा रहा है?", hinglish: "Kya bachcha theek se kha raha hai?" },
+    { en: "Is vaccination up to date?", hi: "क्या टीकाकरण पूरा है?", hinglish: "Kya vaccination poora hai?" },
+    { en: "Any birth complications?", hi: "क्या जन्म के समय कोई समस्या थी?", hinglish: "Kya janam ke waqt koi problem thi?" },
+  ],
+  gynecology: [
+    { en: "Are your periods regular?", hi: "क्या मासिक धर्म नियमित है?", hinglish: "Kya periods regular hain?" },
+    { en: "Do you have pain during periods?", hi: "क्या मासिक धर्म में दर्द होता है?", hinglish: "Kya periods mein dard hota hai?" },
+    { en: "Are you pregnant?", hi: "क्या आप गर्भवती हैं?", hinglish: "Kya aap pregnant hain?" },
+    { en: "Do you have white discharge?", hi: "क्या सफेद पानी आता है?", hinglish: "Kya safed pani aata hai?" },
+    { en: "Any history of PCOD/PCOS?", hi: "क्या PCOD की समस्या है?", hinglish: "Kya PCOD ki problem hai?" },
+    { en: "Date of last period?", hi: "आखिरी मासिक धर्म कब था?", hinglish: "Last period kab tha?" },
+  ],
+  ophthalmology: [
+    { en: "What eye problem do you have?", hi: "आंखों में क्या समस्या है?", hinglish: "Aankhon mein kya problem hai?" },
+    { en: "Do you wear glasses?", hi: "क्या आप चश्मा लगाते हैं?", hinglish: "Kya aap chashma lagate ho?" },
+    { en: "Is there redness or itching in eyes?", hi: "क्या आंखें लाल हैं या खुजली है?", hinglish: "Kya aankhein laal hain ya khujli hai?" },
+    { en: "Do you have blurred vision?", hi: "क्या धुंधला दिखता है?", hinglish: "Kya dhundhla dikhta hai?" },
+    { en: "Any injury to the eye?", hi: "क्या आंख में चोट लगी है?", hinglish: "Kya aankh mein chot lagi hai?" },
+    { en: "Do you have diabetes?", hi: "क्या आपको डायबिटीज है?", hinglish: "Kya aapko diabetes hai?" },
+  ],
+  ent: [
+    { en: "Do you have ear pain?", hi: "क्या कान में दर्द है?", hinglish: "Kya kaan mein dard hai?" },
+    { en: "Do you have hearing loss?", hi: "क्या सुनने में दिक्कत है?", hinglish: "Kya sunne mein dikkat hai?" },
+    { en: "Do you have nose blockage?", hi: "क्या नाक बंद है?", hinglish: "Kya naak band hai?" },
+    { en: "Do you have throat pain?", hi: "क्या गले में दर्द है?", hinglish: "Kya gale mein dard hai?" },
+    { en: "Do you snore while sleeping?", hi: "क्या सोते समय खर्राटे आते हैं?", hinglish: "Kya sote waqt kharate aate hain?" },
+    { en: "Any discharge from ear or nose?", hi: "क्या कान या नाक से कुछ आता है?", hinglish: "Kya kaan ya naak se kuch aata hai?" },
+  ],
+  psychiatry: [
+    { en: "How is your mood lately?", hi: "आजकल आपका मूड कैसा है?", hinglish: "Aajkal aapka mood kaisa hai?" },
+    { en: "Do you have anxiety or stress?", hi: "क्या आपको चिंता या तनाव है?", hinglish: "Kya aapko anxiety ya stress hai?" },
+    { en: "Do you have sleep problems?", hi: "क्या नींद की समस्या है?", hinglish: "Kya neend ki problem hai?" },
+    { en: "Do you feel depressed?", hi: "क्या आप उदास महसूस करते हैं?", hinglish: "Kya aap udaas feel karte ho?" },
+    { en: "Do you have panic attacks?", hi: "क्या पैनिक अटैक आते हैं?", hinglish: "Kya panic attacks aate hain?" },
+    { en: "Are you on any psychiatric medication?", hi: "क्या कोई दवा चल रही है?", hinglish: "Kya koi psychiatric medicine chal rahi hai?" },
+  ],
+  diabetes: [
+    { en: "How long have you had diabetes?", hi: "डायबिटीज कब से है?", hinglish: "Diabetes kab se hai?" },
+    { en: "What is your recent blood sugar level?", hi: "हाल का ब्लड शुगर कितना है?", hinglish: "Recent blood sugar kitna hai?" },
+    { en: "Are you on insulin?", hi: "क्या इंसुलिन लेते हैं?", hinglish: "Kya insulin lete ho?" },
+    { en: "Do you have thyroid problems?", hi: "क्या थायरॉइड की समस्या है?", hinglish: "Kya thyroid ki problem hai?" },
+    { en: "Do you have foot numbness?", hi: "क्या पैरों में सुन्नपन है?", hinglish: "Kya pairon mein sunnpan hai?" },
+    { en: "What is your recent HbA1c?", hi: "हाल का HbA1c क्या है?", hinglish: "Recent HbA1c kya hai?" },
+  ],
+  pulmonology: [
+    { en: "Do you have cough?", hi: "क्या खांसी है?", hinglish: "Kya khansi hai?" },
+    { en: "Do you cough up blood?", hi: "क्या खांसी में खून आता है?", hinglish: "Kya khansi mein khoon aata hai?" },
+    { en: "Do you feel breathless?", hi: "क्या सांस फूलती है?", hinglish: "Kya saans phoolti hai?" },
+    { en: "Do you have asthma?", hi: "क्या दमा है?", hinglish: "Kya asthma hai?" },
+    { en: "Do you smoke?", hi: "क्या धूम्रपान करते हैं?", hinglish: "Kya smoking karte ho?" },
+    { en: "Any chest pain while breathing?", hi: "क्या सांस लेते समय सीने में दर्द होता है?", hinglish: "Kya saans lete waqt seene mein dard hota hai?" },
+  ],
+}
+
 type Lang = 'en' | 'hi' | 'hinglish'
 
 // =================== CHAT COMPONENT ===================
@@ -592,7 +691,7 @@ function DoctorHome({ user, cases, onNavigate }: {
 function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [lang, setLang] = useState<Lang>('en')
   const [answers, setAnswers] = useState<string[]>(Array(QUESTIONS.length).fill(''))
- const [step, setStep] = useState<'home' | 'questions' | 'cases' | 'records' | 'specialty'>('home')
+ const [step, setStep] = useState<'home' | 'questions' | 'cases' | 'records' | 'specialty' | 'specialty-questions'>('home')
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [cases, setCases] = useState<any[]>([])
@@ -749,7 +848,7 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                       if (sp === 'pulmonology') return spec.includes('pulmo') || spec.includes('lung')
                       return true
                     }).map((d: any) => (
-                      <button key={d.id} onClick={() => { setSelectedDoctorId(d.id); setStep('questions') }} style={{
+                    <button key={d.id} onClick={() => { setSelectedDoctorId(d.id); setStep('specialty-questions' as any) }} style={{
                         background: 'white', border: '1.5px solid #E2E8F0',
                         borderRadius: '12px', padding: '14px 16px', cursor: 'pointer',
                         textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.2s',
@@ -871,6 +970,65 @@ function PatientDashboard({ user, onLogout }: { user: User; onLogout: () => void
                 }}>💬 {chatCase?.id === c.id ? 'Close Chat' : 'Chat with Doctor'}</button>
               </div>
             ))}
+          </div>
+        )}
+
+{step === 'specialty-questions' && (
+          <div style={{ background: 'white', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <button onClick={() => setStep('specialty')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>←</button>
+              <h3 style={{ color: '#0d9488', margin: 0 }}>📝 {selectedSpecialty.charAt(0).toUpperCase() + selectedSpecialty.slice(1)} Questions</h3>
+            </div>
+            {submitted ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <p style={{ fontSize: '48px' }}>✅</p>
+                <h3 style={{ color: '#137333' }}>Case Submitted!</h3>
+                <p style={{ color: '#666' }}>Case ID: <strong>{newCaseId}</strong></p>
+                <p style={{ color: '#666' }}>Doctor will review soon.</p>
+                <button onClick={() => { setSubmitted(false); setAnswers(Array(QUESTIONS.length).fill('')); setStep('home'); setSelectedSpecialty(''); setSelectedDoctorId('') }} style={{
+                  marginTop: '16px', padding: '12px 24px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer'
+                }}>Go to Home</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                  {(['en', 'hi', 'hinglish'] as Lang[]).map(l => (
+                    <button key={l} onClick={() => setLang(l)} style={{
+                      padding: '6px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px',
+                      background: lang === l ? '#0d9488' : '#f0f0f0', color: lang === l ? 'white' : '#555'
+                    }}>{l === 'en' ? '🇬🇧 EN' : l === 'hi' ? '🇮🇳 HI' : '🤝 Hinglish'}</button>
+                  ))}
+                </div>
+                {(SPECIALTY_QUESTIONS[selectedSpecialty] || SPECIALTY_QUESTIONS['general']).map((q, i) => (
+                  <div key={i} style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', color: '#333' }}>{i + 1}. {q[lang]}</label>
+                    <input value={answers[i] || ''} onChange={e => { const a = [...answers]; a[i] = e.target.value; setAnswers(a) }}
+                      placeholder={lang === 'en' ? 'Your answer...' : lang === 'hi' ? 'आपका जवाब...' : 'Aapka jawab...'}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' as const }} />
+                  </div>
+                ))}
+                <div style={{ marginBottom: '20px', padding: '16px', background: '#f8f9ff', borderRadius: '12px', border: '2px dashed #c7d7fc' }}>
+                  <p style={{ fontWeight: 'bold', color: '#333', marginBottom: '10px' }}>📎 Attach Medical Files <span style={{ fontWeight: 'normal', color: '#888', fontSize: '13px' }}>(Optional)</span></p>
+                  <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>PDF reports, X-rays, prescriptions • JPG/PNG/PDF • Max 5MB each</p>
+                  {files.length > 0 && (
+                    <div style={{ marginBottom: '12px' }}>
+                      {files.map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'white', borderRadius: '8px', marginBottom: '6px', border: '1px solid #e0e0e0' }}>
+                          <span style={{ fontSize: '14px' }}>{getFileIcon(f.name)} {f.name}</span>
+                          <button onClick={() => removeFile(i)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>✕ Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple onChange={handleFileChange} style={{ display: 'none' }} />
+                  <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 20px', background: 'white', color: '#0d9488', border: '2px solid #0d9488', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>+ Add Files</button>
+                </div>
+                <button onClick={handleSubmit} disabled={loading} style={{
+                  width: '100%', padding: '14px', background: loading ? '#ccc' : '#0d9488', color: 'white',
+                  border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer', fontWeight: 'bold'
+                }}>{loading ? 'Submitting...' : 'Submit Case →'}</button>
+              </>
+            )}
           </div>
         )}
 
