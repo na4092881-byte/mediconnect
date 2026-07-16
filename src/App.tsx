@@ -582,7 +582,7 @@ function PatientHome({ user, cases, records, onNavigate }: {
 function DoctorHome({ user, cases, onNavigate }: {
   user: User
   cases: any[]
-  onNavigate: (step: 'home' | 'cases') => void
+  onNavigate: (step: 'home' | 'cases' | 'profile') => void
 }) {
   const now = new Date()
   const hour = now.getHours()
@@ -633,12 +633,13 @@ function DoctorHome({ user, cases, onNavigate }: {
         </div>
       )}
       <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0A1628', marginBottom: '12px' }}>Quick Actions</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {[
-          { icon: '📋', label: 'All Cases', desc: `${cases.length} total`, color: '#0d9488' },
-          { icon: '⏳', label: 'Pending Review', desc: `${pending} waiting`, color: '#F59E0B' },
+          { icon: '📋', label: 'All Cases', desc: `${cases.length} total`, color: '#0d9488', step: 'cases' as const },
+          { icon: '⏳', label: 'Pending Review', desc: `${pending} waiting`, color: '#F59E0B', step: 'cases' as const },
+          { icon: '👤', label: 'My Profile', desc: 'Edit profile', color: '#8B5CF6', step: 'profile' as const },
         ].map((a, i) => (
-          <button key={i} onClick={() => onNavigate('cases')} style={{
+          <button key={i} onClick={() => onNavigate(a.step)} style={{
             background: 'white', border: `2px solid ${a.color}25`, borderRadius: '14px',
             padding: '18px 14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -683,6 +684,188 @@ function DoctorHome({ user, cases, onNavigate }: {
           <p>Patients will appear here once they select you as their doctor</p>
         </div>
       )}
+    </div>
+  )
+}
+
+// =================== DOCTOR PROFILE ===================
+function DoctorProfile({ user }: { user: User }) {
+  const [profile, setProfile] = useState<any>(null)
+  const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [form, setForm] = useState({
+    experience: '', about: '', city: '', phone: ''
+  })
+
+  useEffect(() => { fetchProfile() }, [])
+
+  const fetchProfile = async () => {
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+    if (data) {
+      setProfile(data)
+      setForm({
+        experience: data.experience || '',
+        about: data.about || '',
+        city: data.city || '',
+        phone: data.phone || '',
+      })
+    }
+  }
+
+  const handleSave = async () => {
+    setLoading(true)
+    await supabase.from('profiles').update({
+      experience: form.experience,
+      about: form.about,
+      city: form.city,
+      phone: form.phone,
+    }).eq('id', user.id)
+    setSaved(true)
+    setEditing(false)
+    setLoading(false)
+    fetchProfile()
+    setTimeout(() => setSaved(false), 3000)
+  }
+
+  if (!profile) return <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+
+  return (
+    <div style={{ padding: '20px 0' }}>
+
+      {/* Profile Card */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0A1628 0%, #0F2241 55%, #0d9488 100%)',
+        borderRadius: '20px', padding: '28px 24px', marginBottom: '24px',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '70px', height: '70px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '28px', fontWeight: '700', color: 'white', flexShrink: 0
+          }}>
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ color: 'white', fontSize: '22px', margin: 0 }}>Dr. {user.name}</h2>
+              {profile.is_verified && (
+                <span style={{ background: '#10B981', color: 'white', fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '600' }}>✅ Verified</span>
+              )}
+              {!profile.is_verified && (
+                <span style={{ background: '#F59E0B', color: 'white', fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '600' }}>⏳ Pending</span>
+              )}
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.7)', margin: '4px 0 0', fontSize: '14px' }}>
+              {profile.specialization || 'General Physician'}
+            </p>
+            {profile.city && <p style={{ color: 'rgba(255,255,255,0.6)', margin: '2px 0 0', fontSize: '13px' }}>📍 {profile.city}</p>}
+          </div>
+        </div>
+      </div>
+
+      {saved && (
+        <div style={{ background: '#D1FAE5', border: '1px solid #6EE7B7', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', color: '#065F46', fontWeight: '600' }}>
+          ✅ Profile saved successfully!
+        </div>
+      )}
+
+      {/* Profile Details */}
+      <div style={{ background: 'white', borderRadius: '16px', padding: '24px', marginBottom: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ color: '#0A1628', margin: 0, fontSize: '16px' }}>👤 Profile Details</h3>
+          <button onClick={() => setEditing(!editing)} style={{
+            padding: '8px 16px', background: editing ? '#FEE2E2' : '#E1F5EE',
+            color: editing ? '#DC2626' : '#0d9488',
+            border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px'
+          }}>{editing ? '✕ Cancel' : '✏️ Edit Profile'}</button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          {/* Experience */}
+          <div>
+            <label style={{ display: 'block', fontWeight: '600', color: '#475569', fontSize: '12px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Experience</label>
+            {editing ? (
+              <input value={form.experience} onChange={e => setForm({ ...form, experience: e.target.value })}
+                placeholder="e.g. 5 years" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '14px', boxSizing: 'border-box' as const }} />
+            ) : (
+              <p style={{ color: '#0A1628', fontSize: '14px', margin: 0 }}>{profile.experience || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Not added</span>}</p>
+            )}
+          </div>
+
+          {/* City */}
+          <div>
+            <label style={{ display: 'block', fontWeight: '600', color: '#475569', fontSize: '12px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>City</label>
+            {editing ? (
+              <input value={form.city} onChange={e => setForm({ ...form, city: e.target.value })}
+                placeholder="e.g. New Delhi" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '14px', boxSizing: 'border-box' as const }} />
+            ) : (
+              <p style={{ color: '#0A1628', fontSize: '14px', margin: 0 }}>{profile.city || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Not added</span>}</p>
+            )}
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label style={{ display: 'block', fontWeight: '600', color: '#475569', fontSize: '12px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Phone</label>
+            {editing ? (
+              <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+                placeholder="e.g. 9876543210" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '14px', boxSizing: 'border-box' as const }} />
+            ) : (
+              <p style={{ color: '#0A1628', fontSize: '14px', margin: 0 }}>{profile.phone || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Not added</span>}</p>
+            )}
+          </div>
+
+          {/* Email */}
+          <div>
+            <label style={{ display: 'block', fontWeight: '600', color: '#475569', fontSize: '12px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</label>
+            <p style={{ color: '#0A1628', fontSize: '14px', margin: 0 }}>{user.email}</p>
+          </div>
+        </div>
+
+        {/* About */}
+        <div style={{ marginTop: '16px' }}>
+          <label style={{ display: 'block', fontWeight: '600', color: '#475569', fontSize: '12px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>About / Bio</label>
+          {editing ? (
+            <textarea value={form.about} onChange={e => setForm({ ...form, about: e.target.value })}
+              placeholder="Write about your experience, specialization, achievements..."
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '14px', height: '100px', boxSizing: 'border-box' as const, resize: 'vertical' }} />
+          ) : (
+            <p style={{ color: '#0A1628', fontSize: '14px', margin: 0, lineHeight: '1.6' }}>{profile.about || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Not added</span>}</p>
+          )}
+        </div>
+
+        {editing && (
+          <button onClick={handleSave} disabled={loading} style={{
+            marginTop: '20px', width: '100%', padding: '13px',
+            background: loading ? '#ccc' : '#0d9488', color: 'white',
+            border: 'none', borderRadius: '10px', cursor: 'pointer',
+            fontWeight: '600', fontSize: '15px'
+          }}>{loading ? 'Saving...' : '💾 Save Profile'}</button>
+        )}
+      </div>
+
+      {/* Verification Status */}
+      <div style={{
+        background: profile.is_verified ? '#F0FDF9' : '#FEF3C7',
+        border: `1px solid ${profile.is_verified ? '#A7F3D0' : '#FCD34D'}`,
+        borderRadius: '14px', padding: '16px 20px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '24px' }}>{profile.is_verified ? '✅' : '⏳'}</span>
+          <div>
+            <p style={{ fontWeight: '600', color: profile.is_verified ? '#065F46' : '#92400E', margin: 0, fontSize: '15px' }}>
+              {profile.is_verified ? 'Account Verified' : 'Verification Pending'}
+            </p>
+            <p style={{ color: profile.is_verified ? '#0d9488' : '#B45309', fontSize: '13px', margin: '2px 0 0' }}>
+              {profile.is_verified ? 'Your profile is verified by MediConnect admin' : 'Admin will verify your account soon. Contact: admin@mediconnect.in'}
+            </p>
+          </div>
+        </div>
+      </div>
+
     </div>
   )
 }
@@ -1085,8 +1268,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
   const [sent, setSent] = useState(false)
   const [fileUrls, setFileUrls] = useState<{ name: string; url: string }[]>([])
   const [chatCase, setChatCase] = useState<any | null>(null)
-  const [step, setStep] = useState<'home' | 'cases'>('home')
-
+  const [step, setStep] = useState<'home' | 'cases' | 'profile'>('home')
   useEffect(() => { fetchCases() }, [])
 
   const fetchCases = async () => {
@@ -1173,6 +1355,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => setStep('home')} className={`nav-btn ${step === 'home' ? 'active' : ''}`}>🏠 Home</button>
           <button onClick={() => { setStep('cases'); fetchCases() }} className={`nav-btn ${step === 'cases' ? 'active' : ''}`}>📋 Cases</button>
+          <button onClick={() => setStep('profile')} className={`nav-btn ${step === 'profile' ? 'active' : ''}`}>👤 My Profile</button>
           <NotificationBell userId={user.id} />
           <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>👨‍⚕️ {user.name}</span>
           <button onClick={onLogout} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Logout</button>
@@ -1183,6 +1366,7 @@ function DoctorDashboard({ user, onLogout }: { user: User; onLogout: () => void 
 
         {step === 'home' && <DoctorHome user={user} cases={cases} onNavigate={setStep} />}
 
+        {step === 'profile' && <DoctorProfile user={user} />}
         {step === 'cases' && (
           <div>
             <div className='stats-grid' style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
